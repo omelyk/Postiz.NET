@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.0-alpha.5 — 2026-08-08
+
+- Release coordinata con il fix dell'exchange Connect Social Manager.
+- Contratti SDK invariati rispetto ad alpha.4.
+
 ## 1.0.0-alpha.4 — 2026-08-08
 
 - Release coordinata con il Connect OAuth presidiato dell'estensione HappyM.
