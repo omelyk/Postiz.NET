@@ -14,7 +14,6 @@ public static class PostizServiceCollectionExtensions
         var options = new PostizOptions
         {
             BaseAddress = new Uri("https://localhost"),
-            ApiKey = string.Empty,
         };
         configure(options);
         options.Validate();

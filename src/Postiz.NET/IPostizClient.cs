@@ -1,4 +1,5 @@
 using Postiz.Analytics;
+using Postiz.Appliance;
 using Postiz.Authentication;
 using Postiz.Capabilities;
 using Postiz.Integrations;
@@ -11,6 +12,8 @@ namespace Postiz;
 
 public interface IPostizClient
 {
+    IPostizApplianceClient Appliance { get; }
+
     IPostizIntegrationsClient Integrations { get; }
 
     IPostizMediaClient Media { get; }

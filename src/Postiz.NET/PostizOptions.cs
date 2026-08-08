@@ -4,7 +4,13 @@ public sealed class PostizOptions
 {
     public required Uri BaseAddress { get; set; }
 
-    public required string ApiKey { get; set; }
+    public string? ApiKey { get; set; }
+
+    public string? OrganizationId { get; set; }
+
+    public string? InternalClientId { get; set; }
+
+    public string? InternalClientSecret { get; set; }
 
     public TimeSpan RequestTimeout { get; set; } = TimeSpan.FromSeconds(30);
 
@@ -24,9 +30,18 @@ public sealed class PostizOptions
             throw new ArgumentException("Postiz BaseAddress must use HTTPS outside local development.", nameof(BaseAddress));
         }
 
-        if (string.IsNullOrWhiteSpace(ApiKey))
+        var hasApiKey = !string.IsNullOrWhiteSpace(ApiKey);
+        var hasInternalCredentials =
+            !string.IsNullOrWhiteSpace(InternalClientId) &&
+            !string.IsNullOrWhiteSpace(InternalClientSecret);
+        if (!hasApiKey && !hasInternalCredentials)
         {
-            throw new ArgumentException("A Postiz API key is required.", nameof(ApiKey));
+            throw new ArgumentException("A Postiz API key or internal client credentials are required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(InternalClientId) != string.IsNullOrWhiteSpace(InternalClientSecret))
+        {
+            throw new ArgumentException("InternalClientId and InternalClientSecret must be configured together.");
         }
 
         if (RequestTimeout <= TimeSpan.Zero)

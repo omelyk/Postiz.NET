@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.0-alpha.3 — 2026-08-08
+
+- Client tipizzato `IPostizApplianceClient` per bootstrap e controllo M2M.
+- Supporto alla rotazione della chiave di servizio e allo scope farmacia con `X-HappyM-Organization-Id`.
+- Autenticazione separata fra API key pubblica e credenziali interne.
+
 ## 1.0.0-alpha.2 - Unreleased
 
 - Completed the HappyM `/public/v1` integration surface with capability and

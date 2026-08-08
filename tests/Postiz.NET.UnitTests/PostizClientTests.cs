@@ -133,13 +133,88 @@ public sealed class PostizClientTests
         Assert.Equal("post-1", post.GetProperty("id").GetString());
     }
 
-    private static IPostizClient CreateClient(HttpMessageHandler handler) =>
+    [Fact]
+    public async Task Appliance_control_plane_uses_internal_credentials_without_api_key()
+    {
+        using var handler = new StubHandler((request, _) =>
+        {
+            Assert.Equal("/internal/happym/appliance/linked", request.RequestUri?.AbsolutePath);
+            Assert.Equal("Bearer internal-secret", request.Headers.GetValues("Authorization").Single());
+            Assert.Equal("pharma", request.Headers.GetValues("X-HappyM-Client-Id").Single());
+            return Json(HttpStatusCode.OK,
+                "{\"up\":true,\"apiOk\":true,\"applianceMode\":true,\"ready\":true,\"productName\":\"Social Manager\",\"systemOrganizationId\":\"happym-system\",\"adminProvisioned\":true,\"serviceKeyProvisioned\":true}");
+        });
+        var client = new PostizClient(
+            new HttpClient(handler) { BaseAddress = new Uri("https://postiz.test/") },
+            new PostizOptions
+            {
+                BaseAddress = new Uri("https://postiz.test/"),
+                InternalClientId = "pharma",
+                InternalClientSecret = "internal-secret",
+                MaxRetryAttempts = 0,
+            });
+
+        var status = await client.Appliance.GetStatusAsync(CancellationToken.None);
+
+        Assert.True(status.Ready);
+        Assert.Equal("Social Manager", status.ProductName);
+    }
+
+    [Fact]
+    public async Task Tenant_scoped_public_api_sends_the_organization_header()
+    {
+        using var handler = new StubHandler((request, _) =>
+        {
+            Assert.Equal("pharmacy-42", request.Headers.GetValues("X-HappyM-Organization-Id").Single());
+            return Json(HttpStatusCode.OK, "[]");
+        });
+        var client = CreateClient(handler, "pharmacy-42");
+
+        await client.Integrations.GetAsync(cancellationToken: CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task Rotated_service_key_is_used_by_following_public_api_calls()
+    {
+        var calls = 0;
+        using var handler = new StubHandler((request, _) =>
+        {
+            calls++;
+            if (request.RequestUri?.AbsolutePath.EndsWith("credentials/rotate", StringComparison.Ordinal) == true)
+            {
+                Assert.Equal("Bearer internal-secret", request.Headers.GetValues("Authorization").Single());
+                return Json(HttpStatusCode.OK,
+                    "{\"apiKey\":\"rotated-key\",\"organizationId\":\"happym-system\",\"issuedAt\":\"2026-08-08T00:00:00Z\",\"rotated\":true}");
+            }
+
+            Assert.Equal("rotated-key", request.Headers.GetValues("Authorization").Single());
+            return Json(HttpStatusCode.OK, "[]");
+        });
+        var client = new PostizClient(
+            new HttpClient(handler) { BaseAddress = new Uri("https://postiz.test/") },
+            new PostizOptions
+            {
+                BaseAddress = new Uri("https://postiz.test/"),
+                ApiKey = "old-key",
+                InternalClientId = "pharma",
+                InternalClientSecret = "internal-secret",
+                MaxRetryAttempts = 0,
+            });
+
+        await client.Appliance.RotateCredentialsAsync(CancellationToken.None);
+        await client.Integrations.GetAsync(cancellationToken: CancellationToken.None);
+
+        Assert.Equal(2, calls);
+    }
+
+    private static IPostizClient CreateClient(HttpMessageHandler handler, string? organizationId = null) =>
         new PostizClient(
             new HttpClient(handler) { BaseAddress = new Uri("https://postiz.test/") },
             new PostizOptions
             {
                 BaseAddress = new Uri("https://postiz.test/"),
                 ApiKey = "postiz-api-key",
+                OrganizationId = organizationId,
                 MaxRetryAttempts = 0,
             });
 

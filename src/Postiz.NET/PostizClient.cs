@@ -1,4 +1,5 @@
 using Postiz.Analytics;
+using Postiz.Appliance;
 using Postiz.Authentication;
 using Postiz.Capabilities;
 using Postiz.Integrations;
@@ -21,6 +22,7 @@ public sealed class PostizClient : IPostizClient
         httpClient.BaseAddress ??= options.BaseAddress;
         var transport = new PostizTransport(httpClient, options);
 
+        Appliance = new PostizApplianceClient(transport, options);
         Integrations = new PostizIntegrationsClient(transport);
         Media = new PostizMediaClient(transport);
         Posts = new PostizPostsClient(transport);
@@ -31,6 +33,8 @@ public sealed class PostizClient : IPostizClient
         Notifications = new PostizNotificationsClient(transport);
         Webhooks = new PostizWebhooksClient(transport);
     }
+
+    public IPostizApplianceClient Appliance { get; }
 
     public IPostizIntegrationsClient Integrations { get; }
 

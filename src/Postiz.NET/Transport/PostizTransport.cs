@@ -12,6 +12,15 @@ internal sealed class PostizTransport(HttpClient httpClient, PostizOptions optio
     internal Task<T> PostAsync<T>(string path, object body, CancellationToken cancellationToken) =>
         SendAsync<T>(HttpMethod.Post, path, Json(body), retryable: false, cancellationToken);
 
+    internal Task<T> GetPublicAsync<T>(string path, CancellationToken cancellationToken) =>
+        SendAsync<T>(HttpMethod.Get, path, null, retryable: true, cancellationToken, AuthenticationMode.None);
+
+    internal Task<T> GetInternalAsync<T>(string path, CancellationToken cancellationToken) =>
+        SendAsync<T>(HttpMethod.Get, path, null, retryable: true, cancellationToken, AuthenticationMode.Internal);
+
+    internal Task<T> PostInternalAsync<T>(string path, object body, CancellationToken cancellationToken) =>
+        SendAsync<T>(HttpMethod.Post, path, Json(body), retryable: false, cancellationToken, AuthenticationMode.Internal);
+
     internal Task<T> PostAsync<T>(string path, HttpContent body, CancellationToken cancellationToken) =>
         SendAsync<T>(HttpMethod.Post, path, body, retryable: false, cancellationToken);
 
@@ -29,7 +38,8 @@ internal sealed class PostizTransport(HttpClient httpClient, PostizOptions optio
         string path,
         HttpContent? content,
         bool retryable,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        AuthenticationMode authenticationMode = AuthenticationMode.ApiKey)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(options.RequestTimeout);
@@ -37,7 +47,19 @@ internal sealed class PostizTransport(HttpClient httpClient, PostizOptions optio
         for (var attempt = 0; ; attempt++)
         {
             using var request = new HttpRequestMessage(method, path) { Content = content };
-            request.Headers.TryAddWithoutValidation("Authorization", options.ApiKey);
+            if (authenticationMode == AuthenticationMode.ApiKey && !string.IsNullOrWhiteSpace(options.ApiKey))
+            {
+                request.Headers.TryAddWithoutValidation("Authorization", options.ApiKey);
+                if (!string.IsNullOrWhiteSpace(options.OrganizationId))
+                {
+                    request.Headers.TryAddWithoutValidation("X-HappyM-Organization-Id", options.OrganizationId);
+                }
+            }
+            else if (authenticationMode == AuthenticationMode.Internal)
+            {
+                request.Headers.TryAddWithoutValidation("Authorization", $"Bearer {options.InternalClientSecret}");
+                request.Headers.TryAddWithoutValidation("X-HappyM-Client-Id", options.InternalClientId);
+            }
             request.Headers.Accept.ParseAdd("application/json");
 
             var correlationId = options.CorrelationIdFactory?.Invoke();
@@ -70,6 +92,13 @@ internal sealed class PostizTransport(HttpClient httpClient, PostizOptions optio
 
             throw await CreateExceptionAsync(response, timeout.Token).ConfigureAwait(false);
         }
+    }
+
+    private enum AuthenticationMode
+    {
+        None,
+        ApiKey,
+        Internal,
     }
 
     private static bool IsTransient(HttpStatusCode statusCode) =>
