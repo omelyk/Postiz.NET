@@ -1,0 +1,14 @@
+# .memory - memoria agent AI (Postiz.NET)
+
+Git versiona SOLO questo file (.info); il resto della cartella resta locale
+(vedi .gitignore).
+
+Uso da parte dell'agent AI:
+- note di sessione e contesto di lavoro corrente;
+- decisioni prese e relative motivazioni;
+- appunti di lavorazione non ufficiali (il changelog ufficiale e' CHANGELOG.md).
+
+Regole:
+- niente token, credenziali o dati sensibili;
+- il file .exclude (locale, non versionato) contiene le regole di esclusione
+  backup usate da GitHub-Manager.

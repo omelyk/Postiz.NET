@@ -1,0 +1,26 @@
+name: build
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+
+permissions:
+  contents: read
+
+jobs:
+  build-test-pack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+      - run: dotnet restore Postiz.NET.slnx --configfile NuGet.config
+      - run: dotnet test Postiz.NET.slnx --configuration Release --no-restore
+      - run: dotnet pack Postiz.NET.slnx --configuration Release --no-restore --output artifacts/packages
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages
+          path: artifacts/packages/*.*nupkg

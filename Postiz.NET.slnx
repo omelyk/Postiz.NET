@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Postiz.NET/Postiz.NET.csproj" />
+    <Project Path="src/Postiz.NET.AspNetCore/Postiz.NET.AspNetCore.csproj" />
+    <Project Path="src/Postiz.NET.DependencyInjection/Postiz.NET.DependencyInjection.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Postiz.NET.UnitTests/Postiz.NET.UnitTests.csproj" />
+    <Project Path="tests/Postiz.NET.ContractTests/Postiz.NET.ContractTests.csproj" />
+    <Project Path="tests/Postiz.NET.IntegrationTests/Postiz.NET.IntegrationTests.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/ConsoleSample/ConsoleSample.csproj" />
+  </Folder>
+</Solution>

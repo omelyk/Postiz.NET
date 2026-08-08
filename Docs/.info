@@ -1,0 +1,23 @@
+# Postiz.NET — Manifest Info
+# File auto-generato da GitHub-Manager. Aggiornare in caso di cambi strutturali.
+
+Repo:       https://github.com/omelyk/Postiz.NET
+Owner:      omelyk
+Template:   dotnet-library
+Tipo:       package
+Generato:   2026-08-08
+
+## Struttura cartelle
+
+  src/         Codice sorgente della libreria .NET.
+  src/samples/ Esempi d'uso della libreria.
+  brand/       Risorse grafiche e di brand: loghi, palette colori,
+               mockup, materiali promozionali, immagini ufficiali.
+  tests/       Test di integrazione o e2e separati dal sorgente.
+  Docs/
+    README.md       Indice documentazione tecnica.
+    .info           Questo file — riepilogo manifest e template.
+    istruzioni.md   Istruzioni operative per sviluppatori e agent.
+    prompt_zero.txt Prompt iniziale per l''agent AI del progetto.
+  .memory/     Memoria agent AI. Solo .info e .exclude tracciati da Git.
+  .github/     Workflow CI/CD GitHub Actions.

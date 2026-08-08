@@ -1,0 +1,91 @@
+# ============================================================
+# Postiz.NET - .gitignore (template dotnet-library)
+# Questo file e' VERSIONATO: regole condivise dal team.
+# Non aggiungere esclusioni aggressive senza valutarne l'impatto.
+# ============================================================
+
+# --- OS / filesystem ---
+.DS_Store
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# --- Log / temp / backup locali ---
+*.log
+*.tmp
+*.temp
+*.bak
+*.swp
+*.old
+*.orig
+temp/
+tmp/
+.cache/
+
+# --- IDE ---
+.vs/
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.suo
+*.user
+
+# --- Ambiente / segreti (mai committare) ---
+.env
+.env.*
+!.env.example
+*.pfx
+*.pem
+*.key
+*.token
+*.secret
+secrets.json
+
+# --- Cursor / AI: file di lavoro locali ---
+.cursor/
+.cursor-prompts/
+.ai/
+
+# --- Memoria agent: solo .info e' versionato ---
+.memory/*
+!.memory/.info
+
+# --- Output release generato in locale ---
+release/
+dist-release/
+# ============================================================
+# .NET / ASP.NET
+# ============================================================
+
+# --- Build ---
+[Bb]in/
+[Oo]bj/
+artifacts/
+TestResults/
+*.nupkg
+*.snupkg
+project.lock.json
+project.assets.json
+
+# --- Publish ---
+publish/
+published/
+*.pubxml.user
+
+# --- Config locali / segreti ASP.NET ---
+# NB: appsettings.json e appsettings.Development.json restano versionati
+#     se non contengono segreti.
+appsettings.Local.json
+appsettings.*.Local.json
+appsettings.Secrets.json
+appsettings.*.Secrets.json
+
+# --- Database locali ---
+*.db
+*.sqlite
+*.sqlite3
+*.mdf
+*.ldf
