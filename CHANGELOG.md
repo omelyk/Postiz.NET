@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.0-alpha.4 — 2026-08-08
+
+- Release coordinata con il Connect OAuth presidiato dell'estensione HappyM.
+- Compatibilità dichiarata con le connect-session purpose/provider alpha.4.
+
 ## 1.0.0-alpha.3 — 2026-08-08
 
 - Client tipizzato `IPostizApplianceClient` per bootstrap e controllo M2M.

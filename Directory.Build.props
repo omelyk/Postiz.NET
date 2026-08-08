@@ -9,8 +9,8 @@
     <Deterministic>true</Deterministic>
     <RepositoryUrl>https://github.com/omelyk/Postiz.NET</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageVersion>1.0.0-alpha.3</PackageVersion>
-    <Version>1.0.0-alpha.3</Version>
+    <PackageVersion>1.0.0-alpha.4</PackageVersion>
+    <Version>1.0.0-alpha.4</Version>
     <Authors>omelyk</Authors>
     <Company>HappyM</Company>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

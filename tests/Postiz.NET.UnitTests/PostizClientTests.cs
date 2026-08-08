@@ -90,7 +90,7 @@ public sealed class PostizClientTests
         using var handler = new StubHandler((request, _) => request.RequestUri?.AbsolutePath switch
         {
             "/public/v1/version" => Json(HttpStatusCode.OK,
-                "{\"product\":\"HappyM.Postiz\",\"apiVersion\":\"1\",\"upstreamVersion\":\"2.23.0\",\"forkVersion\":\"1.0.0-alpha.2\",\"capabilities\":[\"providers\"]}"),
+                "{\"product\":\"HappyM.Postiz\",\"apiVersion\":\"1\",\"upstreamVersion\":\"2.23.0\",\"forkVersion\":\"1.0.0-alpha.4\",\"capabilities\":[\"providers\"]}"),
             "/public/v1/providers" => Json(HttpStatusCode.OK,
                 "{\"social\":[{\"name\":\"Instagram\",\"identifier\":\"instagram\",\"isExternal\":false,\"isWeb3\":false,\"isChromeExtension\":false}],\"article\":[]}"),
             _ => Json(HttpStatusCode.NotFound, "{}"),
