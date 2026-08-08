@@ -62,6 +62,10 @@ public interface IPostizPostsClient
     Task DeleteAsync(string postId, CancellationToken cancellationToken = default);
 
     Task DeleteGroupAsync(string groupId, CancellationToken cancellationToken = default);
+
+    Task UpdateReleaseIdAsync(string postId, string releaseId, CancellationToken cancellationToken = default);
+
+    Task<JsonElement> GetByReleaseIdAsync(string releaseId, CancellationToken cancellationToken = default);
 }
 
 internal sealed class PostizPostsClient(PostizTransport transport) : IPostizPostsClient
@@ -129,6 +133,24 @@ internal sealed class PostizPostsClient(PostizTransport transport) : IPostizPost
 
     public Task DeleteGroupAsync(string groupId, CancellationToken cancellationToken = default) =>
         transport.DeleteAsync($"public/v1/posts/group/{Uri.EscapeDataString(groupId)}", cancellationToken);
+
+    public async Task UpdateReleaseIdAsync(
+        string postId,
+        string releaseId,
+        CancellationToken cancellationToken = default)
+    {
+        _ = await transport.PutAsync<JsonElement>(
+            $"public/v1/posts/{Uri.EscapeDataString(postId)}/release-id",
+            new { releaseId },
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    public Task<JsonElement> GetByReleaseIdAsync(
+        string releaseId,
+        CancellationToken cancellationToken = default) =>
+        transport.GetAsync<JsonElement>(
+            $"public/v1/posts/by-release-id/{Uri.EscapeDataString(releaseId)}",
+            cancellationToken);
 
     private sealed record FindSlotResponse(DateTimeOffset Date);
 }

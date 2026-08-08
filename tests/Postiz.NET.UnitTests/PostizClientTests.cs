@@ -84,6 +84,55 @@ public sealed class PostizClientTests
         Assert.True(stream.CanRead);
     }
 
+    [Fact]
+    public async Task Capabilities_and_provider_catalog_are_exposed()
+    {
+        using var handler = new StubHandler((request, _) => request.RequestUri?.AbsolutePath switch
+        {
+            "/public/v1/version" => Json(HttpStatusCode.OK,
+                "{\"product\":\"HappyM.Postiz\",\"apiVersion\":\"1\",\"upstreamVersion\":\"2.23.0\",\"forkVersion\":\"1.0.0-alpha.2\",\"capabilities\":[\"providers\"]}"),
+            "/public/v1/providers" => Json(HttpStatusCode.OK,
+                "{\"social\":[{\"name\":\"Instagram\",\"identifier\":\"instagram\",\"isExternal\":false,\"isWeb3\":false,\"isChromeExtension\":false}],\"article\":[]}"),
+            _ => Json(HttpStatusCode.NotFound, "{}"),
+        });
+        var client = CreateClient(handler);
+
+        var capabilities = await client.Capabilities.GetAsync(CancellationToken.None);
+        var providers = await client.Integrations.GetProvidersAsync(CancellationToken.None);
+
+        Assert.Equal("2.23.0", capabilities.UpstreamVersion);
+        Assert.Equal("instagram", Assert.Single(providers.Social).Identifier);
+    }
+
+    [Fact]
+    public async Task Webhook_update_requires_an_id_before_sending()
+    {
+        using var handler = new StubHandler((_, _) => Json(HttpStatusCode.OK, "{\"id\":\"webhook-1\"}"));
+        var client = CreateClient(handler);
+        var request = new Webhooks.PostizWebhookRequest(
+            "CRM callback",
+            new Uri("https://crm.example.test/hooks/postiz"),
+            []);
+
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => client.Webhooks.UpdateAsync(request, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Release_id_lookup_is_url_encoded()
+    {
+        using var handler = new StubHandler((request, _) =>
+        {
+            Assert.Equal("/public/v1/posts/by-release-id/social%2F123", request.RequestUri?.AbsolutePath);
+            return Json(HttpStatusCode.OK, "{\"id\":\"post-1\"}");
+        });
+        var client = CreateClient(handler);
+
+        var post = await client.Posts.GetByReleaseIdAsync("social/123", CancellationToken.None);
+
+        Assert.Equal("post-1", post.GetProperty("id").GetString());
+    }
+
     private static IPostizClient CreateClient(HttpMessageHandler handler) =>
         new PostizClient(
             new HttpClient(handler) { BaseAddress = new Uri("https://postiz.test/") },

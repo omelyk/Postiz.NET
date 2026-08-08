@@ -1,9 +1,12 @@
 using Postiz.Analytics;
 using Postiz.Authentication;
+using Postiz.Capabilities;
 using Postiz.Integrations;
 using Postiz.Media;
+using Postiz.Notifications;
 using Postiz.Posts;
 using Postiz.Transport;
+using Postiz.Webhooks;
 
 namespace Postiz;
 
@@ -24,6 +27,9 @@ public sealed class PostizClient : IPostizClient
         Analytics = new PostizAnalyticsClient(transport);
         Groups = new PostizGroupsClient(transport);
         Health = new PostizHealthClient(transport);
+        Capabilities = new PostizCapabilitiesClient(transport);
+        Notifications = new PostizNotificationsClient(transport);
+        Webhooks = new PostizWebhooksClient(transport);
     }
 
     public IPostizIntegrationsClient Integrations { get; }
@@ -37,4 +43,10 @@ public sealed class PostizClient : IPostizClient
     public IPostizGroupsClient Groups { get; }
 
     public IPostizHealthClient Health { get; }
+
+    public IPostizCapabilitiesClient Capabilities { get; }
+
+    public IPostizNotificationsClient Notifications { get; }
+
+    public IPostizWebhooksClient Webhooks { get; }
 }

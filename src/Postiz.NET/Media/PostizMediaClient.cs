@@ -1,8 +1,11 @@
+using System.Text.Json;
 using Postiz.Transport;
 
 namespace Postiz.Media;
 
 public sealed record PostizMedia(string Id, string? Name, string Path);
+
+public sealed record PostizVideoFunctionRequest(string Identifier, string FunctionName, JsonElement Params);
 
 public interface IPostizMediaClient
 {
@@ -13,6 +16,12 @@ public interface IPostizMediaClient
         CancellationToken cancellationToken = default);
 
     Task<PostizMedia> UploadFromUrlAsync(Uri url, CancellationToken cancellationToken = default);
+
+    Task<JsonElement> GenerateVideoAsync(JsonElement request, CancellationToken cancellationToken = default);
+
+    Task<JsonElement> InvokeVideoFunctionAsync(
+        PostizVideoFunctionRequest request,
+        CancellationToken cancellationToken = default);
 }
 
 internal sealed class PostizMediaClient(PostizTransport transport) : IPostizMediaClient
@@ -36,6 +45,14 @@ internal sealed class PostizMediaClient(PostizTransport transport) : IPostizMedi
         ArgumentNullException.ThrowIfNull(url);
         return transport.PostAsync<PostizMedia>("public/v1/upload-from-url", new { url = url.ToString() }, cancellationToken);
     }
+
+    public Task<JsonElement> GenerateVideoAsync(JsonElement request, CancellationToken cancellationToken = default) =>
+        transport.PostAsync<JsonElement>("public/v1/generate-video", request, cancellationToken);
+
+    public Task<JsonElement> InvokeVideoFunctionAsync(
+        PostizVideoFunctionRequest request,
+        CancellationToken cancellationToken = default) =>
+        transport.PostAsync<JsonElement>("public/v1/video/function", request, cancellationToken);
 
     private sealed class NonDisposingStream(Stream inner) : Stream
     {

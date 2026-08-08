@@ -1,8 +1,8 @@
 # Postiz.NET
 
 Typed and testable .NET SDK for the self-hosted Postiz Public API. Version
-`1.0.0-alpha.1` targets .NET 8 and .NET 9 and is compatible with the Postiz
-`v2.23.0` API surface.
+`1.0.0-alpha.2` targets .NET 8 and .NET 9 and is compatible with the HappyM.Postiz
+fork based on upstream `v2.23.0`.
 
 The SDK is independent from HappyM: it contains no CRM rules, tenant mappings or
 database access. HappyM.Pharma integrations consume it like any other .NET

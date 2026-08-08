@@ -20,6 +20,20 @@ public sealed record PostizIntegrationSettings(JsonElement Output);
 
 public sealed record PostizToolRequest(string MethodName, IReadOnlyDictionary<string, string> Data);
 
+public sealed record PostizProvider(
+    string Name,
+    string Identifier,
+    string? ToolTip,
+    string? Editor,
+    bool IsExternal,
+    bool IsWeb3,
+    bool IsChromeExtension,
+    JsonElement? CustomFields);
+
+public sealed record PostizProviderCatalog(IReadOnlyList<PostizProvider> Social, JsonElement Article);
+
+public sealed record PostizConnectUrl(string Url);
+
 public interface IPostizGroupsClient
 {
     Task<IReadOnlyList<PostizGroup>> GetAsync(CancellationToken cancellationToken = default);
@@ -32,6 +46,20 @@ public interface IPostizIntegrationsClient
     Task<PostizIntegrationSettings> GetSettingsAsync(string integrationId, CancellationToken cancellationToken = default);
 
     Task<JsonElement> TriggerAsync(string integrationId, PostizToolRequest request, CancellationToken cancellationToken = default);
+
+    Task<PostizProviderCatalog> GetProvidersAsync(CancellationToken cancellationToken = default);
+
+    Task<PostizConnectUrl> GetConnectUrlAsync(
+        string providerIdentifier,
+        string? refreshIntegrationId = null,
+        CancellationToken cancellationToken = default);
+
+    Task UpdateSettingsAsync(
+        string integrationId,
+        JsonElement additionalSettings,
+        CancellationToken cancellationToken = default);
+
+    Task DeleteAsync(string integrationId, CancellationToken cancellationToken = default);
 }
 
 internal sealed class PostizGroupsClient(PostizTransport transport) : IPostizGroupsClient
@@ -73,6 +101,37 @@ internal sealed class PostizIntegrationsClient(PostizTransport transport) : IPos
             cancellationToken).ConfigureAwait(false);
         return response.Output;
     }
+
+    public Task<PostizProviderCatalog> GetProvidersAsync(CancellationToken cancellationToken = default) =>
+        transport.GetAsync<PostizProviderCatalog>("public/v1/providers", cancellationToken);
+
+    public Task<PostizConnectUrl> GetConnectUrlAsync(
+        string providerIdentifier,
+        string? refreshIntegrationId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var path = $"public/v1/social/{Uri.EscapeDataString(providerIdentifier)}";
+        if (!string.IsNullOrWhiteSpace(refreshIntegrationId))
+        {
+            path += $"?refresh={Uri.EscapeDataString(refreshIntegrationId)}";
+        }
+
+        return transport.GetAsync<PostizConnectUrl>(path, cancellationToken);
+    }
+
+    public async Task UpdateSettingsAsync(
+        string integrationId,
+        JsonElement additionalSettings,
+        CancellationToken cancellationToken = default)
+    {
+        _ = await transport.PutAsync<JsonElement>(
+            $"public/v1/integrations/{Uri.EscapeDataString(integrationId)}/settings",
+            new { additionalSettings },
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    public Task DeleteAsync(string integrationId, CancellationToken cancellationToken = default) =>
+        transport.DeleteAsync($"public/v1/integrations/{Uri.EscapeDataString(integrationId)}", cancellationToken);
 
     private sealed record ToolResponse(JsonElement Output);
 }

@@ -44,7 +44,7 @@ Repo e cartella locale preparate da GitHub-Manager:
 > guidato da `prompt_zero.txt`, e mantenerla aggiornata nel tempo.
 
 - Finalita del progetto: SDK .NET indipendente per la Public API Postiz.
-- Stack effettivo e versioni: C#/.NET 8 e 9, xUnit, NuGet `1.0.0-alpha.1`.
+- Stack effettivo e versioni: C#/.NET 8 e 9, xUnit, NuGet `1.0.0-alpha.2`.
 - Comandi setup / avvio locale: `dotnet restore Postiz.NET.slnx --configfile NuGet.config`.
 - Comandi build / test: `dotnet test Postiz.NET.slnx -c Release --no-restore` e `dotnet pack`.
 - Architettura e componenti: core senza dipendenze, package DI con HttpClientFactory, package ASP.NET Core health checks.
