@@ -45,6 +45,17 @@ public sealed record EnsuredUser(
 
 public sealed record AdminPasswordReset(bool Reset, string AdminUserId);
 
+public sealed record ProviderOAuthAppStatus(
+    string Provider,
+    bool Configured,
+    string? AppIdMasked);
+
+public sealed record ProvidersStatus(IReadOnlyList<ProviderOAuthAppStatus> Providers);
+
+public sealed record SetFacebookOAuthAppRequest(string AppId, string? AppSecret = null);
+
+public sealed record SetProviderOAuthAppResult(bool Configured, string? AppIdMasked);
+
 public interface IPostizApplianceClient
 {
     Task<ApplianceHealth> GetHealthAsync(CancellationToken cancellationToken = default);
@@ -54,6 +65,8 @@ public interface IPostizApplianceClient
     Task<EnsuredOrganization> EnsureOrganizationAsync(EnsureOrganizationRequest request, CancellationToken cancellationToken = default);
     Task<EnsuredUser> EnsureUserAsync(EnsureUserRequest request, CancellationToken cancellationToken = default);
     Task<AdminPasswordReset> ResetAdminPasswordAsync(string password, CancellationToken cancellationToken = default);
+    Task<ProvidersStatus> GetProvidersStatusAsync(CancellationToken cancellationToken = default);
+    Task<SetProviderOAuthAppResult> SetFacebookOAuthAppAsync(SetFacebookOAuthAppRequest request, CancellationToken cancellationToken = default);
 }
 
 internal sealed class PostizApplianceClient(PostizTransport transport, PostizOptions options) : IPostizApplianceClient
@@ -80,6 +93,18 @@ internal sealed class PostizApplianceClient(PostizTransport transport, PostizOpt
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(password);
         return transport.PostInternalAsync<AdminPasswordReset>("internal/happym/appliance/admin/password/reset", new { password }, cancellationToken);
+    }
+
+    public Task<ProvidersStatus> GetProvidersStatusAsync(CancellationToken cancellationToken = default) =>
+        transport.GetInternalAsync<ProvidersStatus>("appliance/providers", cancellationToken);
+
+    public Task<SetProviderOAuthAppResult> SetFacebookOAuthAppAsync(
+        SetFacebookOAuthAppRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(request.AppId);
+        return transport.PutInternalAsync<SetProviderOAuthAppResult>(
+            "appliance/providers/facebook", request, cancellationToken);
     }
 
     private ApplianceCredentials Apply(ApplianceCredentials credentials)

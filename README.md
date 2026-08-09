@@ -1,7 +1,7 @@
 # Postiz.NET
 
 Typed and testable .NET SDK for the self-hosted Postiz Public API. Version
-`1.0.0-alpha.6` targets .NET 8 and .NET 9 and is compatible with the HappyM.Postiz
+`1.0.0-alpha.7` targets .NET 8 and .NET 9 and is compatible with the HappyM.Postiz
 fork based on upstream `v2.23.0`.
 
 The SDK is independent from HappyM: it contains no CRM rules, tenant mappings or
@@ -35,6 +35,11 @@ public sealed class ChannelReader(IPostizClient postiz)
 
 The API key is sent in the raw `Authorization` header, matching Postiz's Public
 API. Never place it in source control or logs.
+
+The M2M control plane exposes provider status and hot-apply through
+`IPostizApplianceClient.GetProvidersStatusAsync` and
+`SetFacebookOAuthAppAsync`. Provider secrets are write-only and are never part
+of response DTOs.
 
 ## Build
 

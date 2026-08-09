@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.0-alpha.7 — 2026-08-09
+
+- Aggiunti stato provider e hot-apply M2M dell'app OAuth Facebook/Instagram.
+- Il secret è write-only: assente dai DTO di stato e dalle risposte SDK.
+- Supportato l'update dell'App Id mantenendo il secret già applicato.
+
 ## 1.0.0-alpha.6 — 2026-08-09
 
 - Release coordinata con l'invariante no-login del Connect OAuth.

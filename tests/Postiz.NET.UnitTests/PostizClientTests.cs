@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using Postiz;
+using Postiz.Appliance;
 using Xunit;
 
 namespace Postiz.NET.UnitTests;
@@ -171,6 +172,67 @@ public sealed class PostizClientTests
         var client = CreateClient(handler, "pharmacy-42");
 
         await client.Integrations.GetAsync(cancellationToken: CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task Facebook_oauth_app_is_hot_applied_over_the_internal_control_plane()
+    {
+        using var handler = new StubHandler((request, _) =>
+        {
+            Assert.Equal(HttpMethod.Put, request.Method);
+            Assert.Equal("/appliance/providers/facebook", request.RequestUri?.AbsolutePath);
+            Assert.Equal("Bearer internal-secret", request.Headers.GetValues("Authorization").Single());
+            Assert.Equal("pharma", request.Headers.GetValues("X-HappyM-Client-Id").Single());
+            var body = request.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
+            Assert.Contains("facebook-app-id", body, StringComparison.Ordinal);
+            Assert.Contains("facebook-app-secret", body, StringComparison.Ordinal);
+            return Json(HttpStatusCode.OK,
+                "{\"configured\":true,\"appIdMasked\":\"*********p-id\"}");
+        });
+        var client = new PostizClient(
+            new HttpClient(handler) { BaseAddress = new Uri("https://postiz.test/") },
+            new PostizOptions
+            {
+                BaseAddress = new Uri("https://postiz.test/"),
+                InternalClientId = "pharma",
+                InternalClientSecret = "internal-secret",
+                MaxRetryAttempts = 0,
+            });
+
+        var result = await client.Appliance.SetFacebookOAuthAppAsync(
+            new("facebook-app-id", "facebook-app-secret"), CancellationToken.None);
+
+        Assert.True(result.Configured);
+        Assert.Equal("*********p-id", result.AppIdMasked);
+    }
+
+    [Fact]
+    public async Task Provider_status_does_not_expose_a_secret_contract()
+    {
+        using var handler = new StubHandler((request, _) =>
+        {
+            Assert.Equal("/appliance/providers", request.RequestUri?.AbsolutePath);
+            return Json(HttpStatusCode.OK,
+                "{\"providers\":[{\"provider\":\"facebook\",\"configured\":true,\"appIdMasked\":\"********1234\"}]}");
+        });
+        var client = new PostizClient(
+            new HttpClient(handler) { BaseAddress = new Uri("https://postiz.test/") },
+            new PostizOptions
+            {
+                BaseAddress = new Uri("https://postiz.test/"),
+                InternalClientId = "pharma",
+                InternalClientSecret = "internal-secret",
+                MaxRetryAttempts = 0,
+            });
+
+        var status = await client.Appliance.GetProvidersStatusAsync(CancellationToken.None);
+
+        var facebook = Assert.Single(status.Providers);
+        Assert.True(facebook.Configured);
+        Assert.Equal("********1234", facebook.AppIdMasked);
+        Assert.DoesNotContain(
+            typeof(ProviderOAuthAppStatus).GetProperties(),
+            property => property.Name.Contains("Secret", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]

@@ -21,6 +21,9 @@ internal sealed class PostizTransport(HttpClient httpClient, PostizOptions optio
     internal Task<T> PostInternalAsync<T>(string path, object body, CancellationToken cancellationToken) =>
         SendAsync<T>(HttpMethod.Post, path, Json(body), retryable: false, cancellationToken, AuthenticationMode.Internal);
 
+    internal Task<T> PutInternalAsync<T>(string path, object body, CancellationToken cancellationToken) =>
+        SendAsync<T>(HttpMethod.Put, path, Json(body), retryable: false, cancellationToken, AuthenticationMode.Internal);
+
     internal Task<T> PostAsync<T>(string path, HttpContent body, CancellationToken cancellationToken) =>
         SendAsync<T>(HttpMethod.Post, path, body, retryable: false, cancellationToken);
 
