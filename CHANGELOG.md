@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.0-alpha.6 — 2026-08-09
+
+- Release coordinata con l'invariante no-login del Connect OAuth.
+- Contratti SDK invariati rispetto ad alpha.5.
+
 ## 1.0.0-alpha.5 — 2026-08-08
 
 - Release coordinata con il fix dell'exchange Connect Social Manager.
