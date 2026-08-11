@@ -1,6 +1,7 @@
 # Errors and retries
 
-Non-success responses throw `PostizApiException` with HTTP status, a safe error
+Non-success responses throw `PostizApiException` with HTTP status, `ErrorCode`,
+`IsTransient`, a typed `ReasonCode`, and a safe error
 code when present, `X-Correlation-Id` and a redacted/truncated JSON body.
 Authorization, token, secret, password and media fields are removed.
 

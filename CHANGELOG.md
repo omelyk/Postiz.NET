@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.0-alpha.10 — 2026-08-11
+
+- `PostizApiException` espone `StatusCode`, `ErrorCode`, `IsTransient` e `ReasonCode` tipizzati.
+- Il messaggio tecnico usa il branding Social Manager e il body resta sanificato.
+- Aggiunta la classificazione esplicita di gateway, autorizzazione, rate limit ed errori server.
+
 ## 1.0.0-alpha.7 — 2026-08-09
 
 - Aggiunti stato provider e hot-apply M2M dell'app OAuth Facebook/Instagram.

@@ -39,10 +39,30 @@ public sealed class PostizClientTests
             () => client.Groups.GetAsync(CancellationToken.None));
 
         Assert.Equal(HttpStatusCode.BadRequest, error.StatusCode);
+        Assert.Equal(PostizApiReasonCode.BadRequest, error.ReasonCode);
+        Assert.False(error.IsTransient);
+        Assert.Equal("invalid", error.ErrorCode);
+        Assert.StartsWith("Social Manager returned HTTP 400.", error.Message, StringComparison.Ordinal);
         Assert.Equal("invalid", error.Code);
         Assert.Equal("corr-123", error.CorrelationId);
         Assert.DoesNotContain("secret", error.ResponseBody, StringComparison.Ordinal);
         Assert.Contains("[redacted]", error.ResponseBody, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Gateway_error_exposes_transient_reason_without_legacy_branding()
+    {
+        using var handler = new StubHandler((_, _) =>
+            Json(HttpStatusCode.BadGateway, "<html>gateway unavailable</html>"));
+        var client = CreateClient(handler);
+
+        var error = await Assert.ThrowsAsync<PostizApiException>(
+            () => client.Groups.GetAsync(CancellationToken.None));
+
+        Assert.Equal(HttpStatusCode.BadGateway, error.StatusCode);
+        Assert.Equal(PostizApiReasonCode.BadGateway, error.ReasonCode);
+        Assert.True(error.IsTransient);
+        Assert.DoesNotContain("Postiz returned", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]
