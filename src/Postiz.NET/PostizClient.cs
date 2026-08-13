@@ -2,6 +2,7 @@ using Postiz.Analytics;
 using Postiz.Appliance;
 using Postiz.Authentication;
 using Postiz.Capabilities;
+using Postiz.Chat;
 using Postiz.Integrations;
 using Postiz.Media;
 using Postiz.Notifications;
@@ -25,6 +26,7 @@ public sealed class PostizClient : IPostizClient
         Appliance = new PostizApplianceClient(transport, options);
         Integrations = new PostizIntegrationsClient(transport);
         Media = new PostizMediaClient(transport);
+        Chat = new PostizChatClient(transport);
         Posts = new PostizPostsClient(transport);
         Analytics = new PostizAnalyticsClient(transport);
         Groups = new PostizGroupsClient(transport);
@@ -39,6 +41,8 @@ public sealed class PostizClient : IPostizClient
     public IPostizIntegrationsClient Integrations { get; }
 
     public IPostizMediaClient Media { get; }
+
+    public IPostizChatClient Chat { get; }
 
     public IPostizPostsClient Posts { get; }
 

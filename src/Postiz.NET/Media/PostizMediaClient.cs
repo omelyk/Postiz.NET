@@ -3,12 +3,21 @@ using Postiz.Transport;
 
 namespace Postiz.Media;
 
-public sealed record PostizMedia(string Id, string? Name, string Path);
+public sealed record PostizMedia(string Id, string? Name, string Path, DateTimeOffset? CreatedAt = null);
+
+public sealed record PostizMediaPage(int Pages, IReadOnlyList<PostizMedia> Results);
 
 public sealed record PostizVideoFunctionRequest(string Identifier, string FunctionName, JsonElement Params);
 
 public interface IPostizMediaClient
 {
+    Task<PostizMediaPage> ListAsync(
+        int page = 1,
+        string? search = null,
+        CancellationToken cancellationToken = default);
+
+    Task DeleteAsync(string id, CancellationToken cancellationToken = default);
+
     Task<PostizMedia> UploadAsync(
         Stream content,
         string fileName,
@@ -26,6 +35,27 @@ public interface IPostizMediaClient
 
 internal sealed class PostizMediaClient(PostizTransport transport) : IPostizMediaClient
 {
+    public Task<PostizMediaPage> ListAsync(
+        int page = 1,
+        string? search = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(page, 1);
+        var query = $"page={page}";
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            query += $"&search={Uri.EscapeDataString(search.Trim())}";
+        }
+
+        return transport.GetAsync<PostizMediaPage>($"public/v1/media?{query}", cancellationToken);
+    }
+
+    public Task DeleteAsync(string id, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
+        return transport.DeleteAsync($"public/v1/media/{Uri.EscapeDataString(id)}", cancellationToken);
+    }
+
     public async Task<PostizMedia> UploadAsync(
         Stream content,
         string fileName,

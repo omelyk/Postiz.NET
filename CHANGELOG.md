@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.0-alpha.11 — 2026-08-13
+
+- Aggiunti `IPostizMediaClient.ListAsync` e `DeleteAsync`, inclusi `createdAt`, ricerca e paginazione org-scoped.
+- Aggiunto `IPostizChatClient` per invio messaggi e lettura thread IA tramite Public API M2M.
+- Conservati upload esistenti, header farmacia e classificazione strutturata `PostizApiException`.
+
 ## 1.0.0-alpha.10 — 2026-08-11
 
 - `PostizApiException` espone `StatusCode`, `ErrorCode`, `IsTransient` e `ReasonCode` tipizzati.

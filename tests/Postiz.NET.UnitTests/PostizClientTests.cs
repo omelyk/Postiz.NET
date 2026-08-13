@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using Postiz;
 using Postiz.Appliance;
+using Postiz.Chat;
 using Xunit;
 
 namespace Postiz.NET.UnitTests;
@@ -103,6 +104,63 @@ public sealed class PostizClientTests
 
         Assert.Equal("media-1", media.Id);
         Assert.True(stream.CanRead);
+    }
+
+    [Fact]
+    public async Task Media_list_and_delete_use_the_native_public_api()
+    {
+        var calls = 0;
+        using var handler = new StubHandler((request, _) =>
+        {
+            calls++;
+            if (request.Method == HttpMethod.Get)
+            {
+                Assert.Equal("/public/v1/media?page=2&search=summer%20sale", request.RequestUri?.PathAndQuery);
+                return Json(HttpStatusCode.OK,
+                    "{\"pages\":3,\"results\":[{\"id\":\"media-1\",\"name\":\"photo.png\",\"path\":\"/photo.png\",\"createdAt\":\"2026-08-13T00:00:00Z\"}]}");
+            }
+
+            Assert.Equal(HttpMethod.Delete, request.Method);
+            Assert.Equal("/public/v1/media/media%2F1", request.RequestUri?.AbsolutePath);
+            return new HttpResponseMessage(HttpStatusCode.NoContent);
+        });
+        var client = CreateClient(handler, "pharmacy-42");
+
+        var page = await client.Media.ListAsync(2, " summer sale ", CancellationToken.None);
+        await client.Media.DeleteAsync("media/1", CancellationToken.None);
+
+        Assert.Equal(3, page.Pages);
+        Assert.Equal("media-1", Assert.Single(page.Results).Id);
+        Assert.Equal(2, calls);
+    }
+
+    [Fact]
+    public async Task Chat_send_and_get_thread_use_the_organization_scoped_public_api()
+    {
+        var calls = 0;
+        using var handler = new StubHandler((request, _) =>
+        {
+            calls++;
+            Assert.Equal("pharmacy-42", request.Headers.GetValues("X-HappyM-Organization-Id").Single());
+            if (request.Method == HttpMethod.Post)
+            {
+                Assert.Equal("/public/v1/chat/messages", request.RequestUri?.AbsolutePath);
+                return Json(HttpStatusCode.OK, "{\"threadId\":\"thread-1\",\"message\":\"Pronto\"}");
+            }
+
+            Assert.Equal("/public/v1/chat/threads/thread-1", request.RequestUri?.AbsolutePath);
+            return Json(HttpStatusCode.OK, "{\"threadId\":\"thread-1\",\"messages\":[]}");
+        });
+        var client = CreateClient(handler, "pharmacy-42");
+
+        var reply = await client.Chat.SendMessageAsync(
+            new PostizChatMessageRequest("Prepara il piano", "thread-1"),
+            CancellationToken.None);
+        var thread = await client.Chat.GetThreadAsync(reply.ThreadId, CancellationToken.None);
+
+        Assert.Equal("Pronto", reply.Message);
+        Assert.Empty(thread.Messages);
+        Assert.Equal(2, calls);
     }
 
     [Fact]

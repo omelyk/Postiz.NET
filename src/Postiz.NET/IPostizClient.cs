@@ -2,6 +2,7 @@ using Postiz.Analytics;
 using Postiz.Appliance;
 using Postiz.Authentication;
 using Postiz.Capabilities;
+using Postiz.Chat;
 using Postiz.Integrations;
 using Postiz.Media;
 using Postiz.Notifications;
@@ -17,6 +18,8 @@ public interface IPostizClient
     IPostizIntegrationsClient Integrations { get; }
 
     IPostizMediaClient Media { get; }
+
+    IPostizChatClient Chat { get; }
 
     IPostizPostsClient Posts { get; }
 
