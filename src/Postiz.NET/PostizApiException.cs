@@ -28,6 +28,8 @@ public sealed class PostizApiException : HttpRequestException
     public PostizApiReasonCode ReasonCode => Code switch
     {
         "media_video_required" => PostizApiReasonCode.MediaVideoRequired,
+        "media_transcode_failed" => PostizApiReasonCode.MediaTranscodeFailed,
+        "media_format_unsupported" => PostizApiReasonCode.MediaFormatUnsupported,
         "youtube_scope_insufficient" => PostizApiReasonCode.YoutubeScopeInsufficient,
         "thumbnail_rejected" => PostizApiReasonCode.ThumbnailRejected,
         "thumbnail_scope_missing" => PostizApiReasonCode.ThumbnailScopeMissing,
@@ -73,6 +75,8 @@ public enum PostizApiReasonCode
     GatewayTimeout,
     ServerError,
     MediaVideoRequired,
+    MediaTranscodeFailed,
+    MediaFormatUnsupported,
     YoutubeScopeInsufficient,
     ThumbnailRejected,
     ThumbnailScopeMissing,

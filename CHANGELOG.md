@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.0-beta.3 — 2026-08-22
+
+- Added semantic `MediaTranscodeFailed` and `MediaFormatUnsupported` reason codes for Media Studio WebM publishing through the Social Manager appliance.
+
 ## 1.0.0-beta.2 — 2026-08-22
 
 - Added the typed `IPostizPostsClient.PublishYoutubeAsync` native publishing contract for tenant-owned videos and optional custom thumbnails.

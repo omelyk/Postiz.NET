@@ -39,6 +39,8 @@ public sealed class PostizClientTests
 
     [Theory]
     [InlineData("media_video_required", PostizApiReasonCode.MediaVideoRequired)]
+    [InlineData("media_transcode_failed", PostizApiReasonCode.MediaTranscodeFailed)]
+    [InlineData("media_format_unsupported", PostizApiReasonCode.MediaFormatUnsupported)]
     [InlineData("youtube_scope_insufficient", PostizApiReasonCode.YoutubeScopeInsufficient)]
     [InlineData("thumbnail_rejected", PostizApiReasonCode.ThumbnailRejected)]
     [InlineData("thumbnail_scope_missing", PostizApiReasonCode.ThumbnailScopeMissing)]
