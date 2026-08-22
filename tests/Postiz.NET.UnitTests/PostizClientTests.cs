@@ -3,12 +3,64 @@ using System.Text;
 using Postiz;
 using Postiz.Appliance;
 using Postiz.Chat;
+using Postiz.Posts;
 using Xunit;
 
 namespace Postiz.NET.UnitTests;
 
 public sealed class PostizClientTests
 {
+    [Fact]
+    public async Task Youtube_publish_is_typed_tenant_scoped_and_uses_native_route()
+    {
+        using var handler = new StubHandler((request, _) =>
+        {
+            Assert.Equal(HttpMethod.Post, request.Method);
+            Assert.Equal("/public/v1/posts/youtube/publish", request.RequestUri?.AbsolutePath);
+            Assert.Equal("pharmacy-42", request.Headers.GetValues("X-HappyM-Organization-Id").Single());
+            var body = request.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
+            Assert.Contains("account-1", body, StringComparison.Ordinal);
+            Assert.Contains("media-1", body, StringComparison.Ordinal);
+            Assert.Contains("yt-shorts", body, StringComparison.Ordinal);
+            return Json(HttpStatusCode.OK,
+                "{\"videoId\":\"yt-123\",\"url\":\"https://www.youtube.com/shorts/yt-123\",\"formatHint\":\"yt-shorts\",\"thumbnailApplied\":true}");
+        });
+        var client = CreateClient(handler, "pharmacy-42");
+
+        var result = await client.Posts.PublishYoutubeAsync(
+            new PublishYoutubeRequest(
+                "account-1", "A title", YoutubeFormatHints.Shorts,
+                VideoMediaId: "media-1", ThumbnailMediaId: "thumb-1"),
+            CancellationToken.None);
+
+        Assert.Equal("yt-123", result.VideoId);
+        Assert.True(result.ThumbnailApplied);
+    }
+
+    [Theory]
+    [InlineData("media_video_required", PostizApiReasonCode.MediaVideoRequired)]
+    [InlineData("youtube_scope_insufficient", PostizApiReasonCode.YoutubeScopeInsufficient)]
+    [InlineData("thumbnail_rejected", PostizApiReasonCode.ThumbnailRejected)]
+    [InlineData("thumbnail_scope_missing", PostizApiReasonCode.ThumbnailScopeMissing)]
+    public async Task Youtube_errors_expose_semantic_reason_codes(
+        string code,
+        PostizApiReasonCode expected)
+    {
+        using var handler = new StubHandler((_, _) =>
+            Json(HttpStatusCode.BadRequest, $"{{\"code\":\"{code}\",\"message\":\"safe\"}}"));
+        var client = CreateClient(handler);
+
+        var error = await Assert.ThrowsAsync<PostizApiException>(() =>
+            client.Posts.PublishYoutubeAsync(
+                new PublishYoutubeRequest(
+                    "account-1", "A title", YoutubeFormatHints.Video,
+                    VideoMediaId: "media-1"),
+                CancellationToken.None));
+
+        Assert.Equal(expected, error.ReasonCode);
+        Assert.Equal(HttpStatusCode.BadRequest, error.StatusCode);
+    }
+
     [Fact]
     public async Task Integrations_send_raw_api_key_and_propagate_cancellation()
     {

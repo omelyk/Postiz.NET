@@ -25,7 +25,19 @@ public sealed class PostizApiException : HttpRequestException
         StatusCode is HttpStatusCode.RequestTimeout or HttpStatusCode.TooManyRequests ||
         (int)StatusCode >= 500;
 
-    public PostizApiReasonCode ReasonCode => StatusCode switch
+    public PostizApiReasonCode ReasonCode => Code switch
+    {
+        "media_video_required" => PostizApiReasonCode.MediaVideoRequired,
+        "youtube_scope_insufficient" => PostizApiReasonCode.YoutubeScopeInsufficient,
+        "thumbnail_rejected" => PostizApiReasonCode.ThumbnailRejected,
+        "thumbnail_scope_missing" => PostizApiReasonCode.ThumbnailScopeMissing,
+        "youtube_account_not_found" => PostizApiReasonCode.YoutubeAccountNotFound,
+        "youtube_authentication_required" => PostizApiReasonCode.YoutubeAuthenticationRequired,
+        "youtube_publish_failed" => PostizApiReasonCode.YoutubePublishFailed,
+        _ => HttpReasonCode,
+    };
+
+    private PostizApiReasonCode HttpReasonCode => StatusCode switch
     {
         HttpStatusCode.BadRequest => PostizApiReasonCode.BadRequest,
         HttpStatusCode.Unauthorized => PostizApiReasonCode.Unauthorized,
@@ -60,4 +72,11 @@ public enum PostizApiReasonCode
     ServiceUnavailable,
     GatewayTimeout,
     ServerError,
+    MediaVideoRequired,
+    YoutubeScopeInsufficient,
+    ThumbnailRejected,
+    ThumbnailScopeMissing,
+    YoutubeAccountNotFound,
+    YoutubeAuthenticationRequired,
+    YoutubePublishFailed,
 }

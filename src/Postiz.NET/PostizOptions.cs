@@ -14,6 +14,8 @@ public sealed class PostizOptions
 
     public TimeSpan RequestTimeout { get; set; } = TimeSpan.FromSeconds(30);
 
+    public TimeSpan YoutubePublishTimeout { get; set; } = TimeSpan.FromMinutes(10);
+
     public int MaxRetryAttempts { get; set; } = 3;
 
     public Func<string?>? CorrelationIdFactory { get; set; }
@@ -47,6 +49,11 @@ public sealed class PostizOptions
         if (RequestTimeout <= TimeSpan.Zero)
         {
             throw new ArgumentOutOfRangeException(nameof(RequestTimeout));
+        }
+
+        if (YoutubePublishTimeout <= TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(YoutubePublishTimeout));
         }
 
         if (MaxRetryAttempts is < 0 or > 6)

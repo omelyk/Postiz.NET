@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.0-beta.2 — 2026-08-22
+
+- Added the typed `IPostizPostsClient.PublishYoutubeAsync` native publishing contract for tenant-owned videos and optional custom thumbnails.
+- Added semantic API reason codes for missing video, insufficient YouTube scopes, rejected thumbnails and missing thumbnail scope.
+- Added a dedicated configurable ten-minute YouTube publish timeout while preserving non-retry semantics for the mutation.
+
 ## 1.0.0-alpha.11 — 2026-08-13
 
 - Aggiunti `IPostizMediaClient.ListAsync` e `DeleteAsync`, inclusi `createdAt`, ricerca e paginazione org-scoped.

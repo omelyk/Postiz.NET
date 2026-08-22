@@ -47,11 +47,37 @@ public sealed record GetPostsRequest(DateTimeOffset StartDate, DateTimeOffset En
 
 public sealed record PostizPostsPage(JsonElement[] Posts);
 
+public static class YoutubeFormatHints
+{
+    public const string Video = "yt-video";
+    public const string Shorts = "yt-shorts";
+}
+
+public sealed record PublishYoutubeRequest(
+    string AccountId,
+    string Title,
+    string FormatHint,
+    string? VideoMediaId = null,
+    string? VideoPath = null,
+    string? Description = null,
+    string? ThumbnailMediaId = null,
+    string? ThumbnailPath = null);
+
+public sealed record PublishedYoutubeVideo(
+    string VideoId,
+    string Url,
+    string FormatHint,
+    bool ThumbnailApplied);
+
 public interface IPostizPostsClient
 {
     Task<PostizPostsPage> GetAsync(GetPostsRequest request, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<CreatedPost>> CreateAsync(CreatePostRequest request, CancellationToken cancellationToken = default);
+
+    Task<PublishedYoutubeVideo> PublishYoutubeAsync(
+        PublishYoutubeRequest request,
+        CancellationToken cancellationToken = default);
 
     Task<DateTimeOffset> FindSlotAsync(string integrationId, CancellationToken cancellationToken = default);
 
@@ -98,6 +124,26 @@ internal sealed class PostizPostsClient(PostizTransport transport) : IPostizPost
                 request.CreationMethod,
             },
             cancellationToken).ConfigureAwait(false);
+
+    public Task<PublishedYoutubeVideo> PublishYoutubeAsync(
+        PublishYoutubeRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        if (string.IsNullOrWhiteSpace(request.VideoMediaId) && string.IsNullOrWhiteSpace(request.VideoPath))
+        {
+            throw new ArgumentException("A video media ID or tenant-owned path is required.", nameof(request));
+        }
+        if (request.FormatHint is not (YoutubeFormatHints.Video or YoutubeFormatHints.Shorts))
+        {
+            throw new ArgumentOutOfRangeException(nameof(request), "FormatHint must be 'yt-video' or 'yt-shorts'.");
+        }
+
+        return transport.PostYoutubeAsync<PublishedYoutubeVideo>(
+            "public/v1/posts/youtube/publish",
+            request,
+            cancellationToken);
+    }
 
     public async Task<DateTimeOffset> FindSlotAsync(
         string integrationId,

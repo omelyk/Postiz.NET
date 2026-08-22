@@ -12,6 +12,9 @@ internal sealed class PostizTransport(HttpClient httpClient, PostizOptions optio
     internal Task<T> PostAsync<T>(string path, object body, CancellationToken cancellationToken) =>
         SendAsync<T>(HttpMethod.Post, path, Json(body), retryable: false, cancellationToken);
 
+    internal Task<T> PostYoutubeAsync<T>(string path, object body, CancellationToken cancellationToken) =>
+        SendAsync<T>(HttpMethod.Post, path, Json(body), retryable: false, cancellationToken, timeoutOverride: options.YoutubePublishTimeout);
+
     internal Task<T> GetPublicAsync<T>(string path, CancellationToken cancellationToken) =>
         SendAsync<T>(HttpMethod.Get, path, null, retryable: true, cancellationToken, AuthenticationMode.None);
 
@@ -42,10 +45,11 @@ internal sealed class PostizTransport(HttpClient httpClient, PostizOptions optio
         HttpContent? content,
         bool retryable,
         CancellationToken cancellationToken,
-        AuthenticationMode authenticationMode = AuthenticationMode.ApiKey)
+        AuthenticationMode authenticationMode = AuthenticationMode.ApiKey,
+        TimeSpan? timeoutOverride = null)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeout.CancelAfter(options.RequestTimeout);
+        timeout.CancelAfter(timeoutOverride ?? options.RequestTimeout);
 
         for (var attempt = 0; ; attempt++)
         {
