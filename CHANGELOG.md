@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.0-beta.4 — 2026-08-22
+
+- Aligned the default native YouTube publish timeout to 30 minutes so appliance-side WebM normalization and resumable upload share the same operational window.
+
 ## 1.0.0-beta.3 — 2026-08-22
 
 - Added semantic `MediaTranscodeFailed` and `MediaFormatUnsupported` reason codes for Media Studio WebM publishing through the Social Manager appliance.
