@@ -36,6 +36,14 @@ public sealed class PostizApiException : HttpRequestException
         "youtube_account_not_found" => PostizApiReasonCode.YoutubeAccountNotFound,
         "youtube_authentication_required" => PostizApiReasonCode.YoutubeAuthenticationRequired,
         "youtube_publish_failed" => PostizApiReasonCode.YoutubePublishFailed,
+        "render_required" => PostizApiReasonCode.RenderRequired,
+        "render_lease_held" => PostizApiReasonCode.RenderLeaseHeld,
+        "render_timed_out" => PostizApiReasonCode.RenderTimedOut,
+        "render_payload_invalid" => PostizApiReasonCode.RenderPayloadInvalid,
+        "publish_blocked_no_render" => PostizApiReasonCode.PublishBlockedNoRender,
+        "occurrence_cancelled" => PostizApiReasonCode.OccurrenceCancelled,
+        "occurrence_not_found" => PostizApiReasonCode.OccurrenceNotFound,
+        "transient_engine" => PostizApiReasonCode.TransientEngine,
         _ => HttpReasonCode,
     };
 
@@ -83,4 +91,12 @@ public enum PostizApiReasonCode
     YoutubeAccountNotFound,
     YoutubeAuthenticationRequired,
     YoutubePublishFailed,
+    RenderRequired,
+    RenderLeaseHeld,
+    RenderTimedOut,
+    RenderPayloadInvalid,
+    PublishBlockedNoRender,
+    OccurrenceCancelled,
+    OccurrenceNotFound,
+    TransientEngine,
 }

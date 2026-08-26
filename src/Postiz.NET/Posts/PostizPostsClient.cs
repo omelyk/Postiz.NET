@@ -27,7 +27,18 @@ public sealed record PostizPostTarget(
     PostizIntegrationReference Integration,
     IReadOnlyList<PostizPostContent> Value,
     JsonElement Settings,
-    string? Group = null);
+    string? Group = null,
+    PrePublishRenderConfig? PrePublishRender = null);
+
+public sealed record PrePublishRenderCorrelation(
+    string CrmSocialPostId,
+    string SnapshotId,
+    string PharmacyGroupId,
+    string? PharmacyId = null);
+
+public sealed record PrePublishRenderConfig(
+    PrePublishRenderCorrelation Correlation,
+    int LeadTimeSeconds = 600);
 
 public sealed record PostizTag(string Value, string Label);
 
@@ -41,7 +52,7 @@ public sealed record CreatePostRequest(
     string? Order = null,
     string CreationMethod = "API");
 
-public sealed record CreatedPost(string PostId, string Integration);
+public sealed record CreatedPost(string PostId, string Integration, string? OccurrenceId = null);
 
 public sealed record GetPostsRequest(DateTimeOffset StartDate, DateTimeOffset EndDate, string? CustomerId = null);
 

@@ -4,12 +4,72 @@ using Postiz;
 using Postiz.Appliance;
 using Postiz.Chat;
 using Postiz.Posts;
+using Postiz.PrePublishRender;
 using Xunit;
 
 namespace Postiz.NET.UnitTests;
 
 public sealed class PostizClientTests
 {
+    [Fact]
+    public async Task Render_claim_is_tenant_scoped_typed_and_idempotent()
+    {
+        using var handler = new StubHandler((request, _) =>
+        {
+            Assert.Equal(HttpMethod.Post, request.Method);
+            Assert.Equal("/public/v1/prepublish-render/occurrences/occ-1/claim-render", request.RequestUri?.AbsolutePath);
+            Assert.Equal("pharmacy-42", request.Headers.GetValues("X-HappyM-Organization-Id").Single());
+            Assert.Equal("claim-1", request.Headers.GetValues("Idempotency-Key").Single());
+            return Json(HttpStatusCode.OK,
+                "{\"occurrenceId\":\"occ-1\",\"socialPostId\":\"post-1\",\"integrationId\":\"integration-1\",\"sequence\":0,\"scheduledFor\":\"2026-08-26T09:00:00Z\",\"status\":\"AwaitingRender\",\"correlation\":{\"crmSocialPostId\":\"crm-1\",\"snapshotId\":\"snapshot-1\",\"pharmacyGroupId\":\"group-1\"},\"leaseExpiresAt\":\"2026-08-26T08:05:00Z\",\"renderToken\":\"opaque-token\"}");
+        });
+        var client = CreateClient(handler, "pharmacy-42");
+
+        var result = await client.PrePublishRender.ClaimAsync(
+            "occ-1", new ClaimRenderRequest("crm-worker", 300), "claim-1");
+
+        Assert.Equal("opaque-token", result.RenderToken);
+        Assert.Equal(PrePublishRenderStatuses.AwaitingRender, result.Status);
+    }
+
+    [Fact]
+    public async Task Render_attach_sends_computed_hash_and_idempotency_key()
+    {
+        using var handler = new StubHandler((request, _) =>
+        {
+            Assert.Equal("attach-1", request.Headers.GetValues("Idempotency-Key").Single());
+            var body = request.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
+            Assert.Contains("sha256-", body, StringComparison.Ordinal);
+            Assert.DoesNotContain("hmproj", body, StringComparison.OrdinalIgnoreCase);
+            return Json(HttpStatusCode.OK,
+                "{\"occurrenceId\":\"occ-1\",\"socialPostId\":\"post-1\",\"integrationId\":\"integration-1\",\"sequence\":0,\"scheduledFor\":\"2026-08-26T09:00:00Z\",\"status\":\"ReadyToPublish\",\"correlation\":{\"crmSocialPostId\":\"crm-1\",\"snapshotId\":\"snapshot-1\",\"pharmacyGroupId\":\"group-1\"}}");
+        });
+        var client = CreateClient(handler, "pharmacy-42");
+        var correlation = new RenderCorrelation("crm-1", "snapshot-1", "group-1");
+        RenderTarget[] targets =
+        [
+            new("integration-1", "youtube", "Ready caption", [new("media-1", "video", "video/mp4")]),
+        ];
+        var request = AttachRenderedRequest.Create(
+            "occ-1", "opaque-token", correlation, targets, DateTimeOffset.Parse("2026-08-26T08:00:00Z"));
+
+        var result = await client.PrePublishRender.AttachRenderedAsync("occ-1", request, "attach-1");
+
+        Assert.Equal(PrePublishRenderStatuses.ReadyToPublish, result.Status);
+        Assert.Equal(
+            "sha256-0f9e710275552e8f30ff3e9930d8ef78d6bbde337a6ae5b5c1c819f80468ed26",
+            request.ContentHash);
+    }
+
+    [Fact]
+    public void Render_reason_codes_are_strongly_mapped()
+    {
+        var exception = new PostizApiException(
+            HttpStatusCode.Conflict, "publish_blocked_no_render", null, "{}");
+
+        Assert.Equal(PostizApiReasonCode.PublishBlockedNoRender, exception.ReasonCode);
+    }
+
     [Fact]
     public async Task Youtube_publish_is_typed_tenant_scoped_and_uses_native_route()
     {

@@ -7,6 +7,7 @@ using Postiz.Integrations;
 using Postiz.Media;
 using Postiz.Notifications;
 using Postiz.Posts;
+using Postiz.PrePublishRender;
 using Postiz.Webhooks;
 
 namespace Postiz;
@@ -22,6 +23,8 @@ public interface IPostizClient
     IPostizChatClient Chat { get; }
 
     IPostizPostsClient Posts { get; }
+
+    IPostizPrePublishRenderClient PrePublishRender { get; }
 
     IPostizAnalyticsClient Analytics { get; }
 

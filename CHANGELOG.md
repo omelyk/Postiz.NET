@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.0-beta.5 — 2026-08-26
+
+PrePublish-Render-Hook: Warning
+- Contract version: `prepublish-render/v1`
+- Breaking: no
+- Gate enforce: yes
+- Added typed schedule correlation, occurrence list/get/cancel, idempotent claim/attach, canonical content-hash generation, and structured render reason codes.
+- Test evidence: 25 unit tests per target framework plus contract/integration suites on .NET 8 and .NET 9.
+
 ## 1.0.0-beta.4 — 2026-08-22
 
 - Aligned the default native YouTube publish timeout to 30 minutes so appliance-side WebM normalization and resumable upload share the same operational window.

@@ -12,6 +12,19 @@ internal sealed class PostizTransport(HttpClient httpClient, PostizOptions optio
     internal Task<T> PostAsync<T>(string path, object body, CancellationToken cancellationToken) =>
         SendAsync<T>(HttpMethod.Post, path, Json(body), retryable: false, cancellationToken);
 
+    internal Task<T> PostIdempotentAsync<T>(
+        string path,
+        object body,
+        string idempotencyKey,
+        CancellationToken cancellationToken) =>
+        SendAsync<T>(
+            HttpMethod.Post,
+            path,
+            Json(body),
+            retryable: false,
+            cancellationToken,
+            headers: new Dictionary<string, string> { ["Idempotency-Key"] = idempotencyKey });
+
     internal Task<T> PostYoutubeAsync<T>(string path, object body, CancellationToken cancellationToken) =>
         SendAsync<T>(HttpMethod.Post, path, Json(body), retryable: false, cancellationToken, timeoutOverride: options.YoutubePublishTimeout);
 
@@ -46,7 +59,8 @@ internal sealed class PostizTransport(HttpClient httpClient, PostizOptions optio
         bool retryable,
         CancellationToken cancellationToken,
         AuthenticationMode authenticationMode = AuthenticationMode.ApiKey,
-        TimeSpan? timeoutOverride = null)
+        TimeSpan? timeoutOverride = null,
+        IReadOnlyDictionary<string, string>? headers = null)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(timeoutOverride ?? options.RequestTimeout);
@@ -68,6 +82,13 @@ internal sealed class PostizTransport(HttpClient httpClient, PostizOptions optio
                 request.Headers.TryAddWithoutValidation("X-HappyM-Client-Id", options.InternalClientId);
             }
             request.Headers.Accept.ParseAdd("application/json");
+            if (headers is not null)
+            {
+                foreach (var header in headers)
+                {
+                    request.Headers.TryAddWithoutValidation(header.Key, header.Value);
+                }
+            }
 
             var correlationId = options.CorrelationIdFactory?.Invoke();
             if (!string.IsNullOrWhiteSpace(correlationId))
