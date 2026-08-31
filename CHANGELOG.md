@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.0-beta.6 — 2026-08-31
+
+Studio-Render-WebM-UAT-Fail: Warning
+- Coordinated the private SDK release with the Social Manager appliance runtime and local-media resolution fix.
+- The native YouTube publish contract and semantic reason codes are unchanged; no consumer source changes are required.
+- Joint HappyM.Pharma unlisted YouTube UAT remains required before production promotion.
+
 ## 1.0.0-beta.5 — 2026-08-26
 
 PrePublish-Render-Hook: Warning
