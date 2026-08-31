@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.0-beta.7 — 2026-08-31
+
+Post-Settings schema: Warning
+- Added typed discovery for the versioned `post-comments/v1` contract returned by `GetSettingsAsync`.
+- Added stable `PostizPostSettingKeys.FirstComment`, `Comments`, and `ValidUntil` constants while preserving raw `Output` compatibility.
+- Documented `firstComment` as a string, ordered `comments` items, native `delay` minutes, and the distinction between public post comments and inbox chat.
+- Joint HappyM.Pharma Instagram/Facebook publication UAT remains required before production promotion.
+
 ## 1.0.0-beta.6 — 2026-08-31
 
 Studio-Render-WebM-UAT-Fail: Warning

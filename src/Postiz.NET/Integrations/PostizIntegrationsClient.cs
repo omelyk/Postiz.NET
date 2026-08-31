@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Postiz.Transport;
 
 namespace Postiz.Integrations;
@@ -16,7 +17,38 @@ public sealed record PostizIntegration(
     string? Profile,
     PostizIntegrationCustomer? Customer);
 
-public sealed record PostizIntegrationSettings(JsonElement Output);
+public static class PostizPostSettingKeys
+{
+    public const string FirstComment = "firstComment";
+    public const string Comments = "comments";
+    public const string ValidUntil = "validUntil";
+}
+
+public sealed record PostizSettingKey(
+    [property: JsonPropertyName("key")] string Key,
+    [property: JsonPropertyName("type")] string Type,
+    [property: JsonPropertyName("description")] string? Description = null);
+
+public sealed record PostizNativeCommentRepresentation(
+    [property: JsonPropertyName("path")] string Path,
+    [property: JsonPropertyName("delayKey")] string DelayKey,
+    [property: JsonPropertyName("delayUnit")] string DelayUnit);
+
+public sealed record PostizPostCommentsContract(
+    [property: JsonPropertyName("contractVersion")] string ContractVersion,
+    [property: JsonPropertyName("supported")] bool Supported,
+    [property: JsonPropertyName("firstComment")] PostizSettingKey FirstComment,
+    [property: JsonPropertyName("comments")] PostizSettingKey Comments,
+    [property: JsonPropertyName("nativeRepresentation")] PostizNativeCommentRepresentation NativeRepresentation);
+
+public sealed record PostizIntegrationSettings(JsonElement Output)
+{
+    public PostizPostCommentsContract? PostComments =>
+        Output.ValueKind == JsonValueKind.Object
+        && Output.TryGetProperty("postComments", out var contract)
+            ? contract.Deserialize<PostizPostCommentsContract>()
+            : null;
+}
 
 public sealed record PostizToolRequest(string MethodName, IReadOnlyDictionary<string, string> Data);
 

@@ -3,6 +3,7 @@ using System.Text;
 using Postiz;
 using Postiz.Appliance;
 using Postiz.Chat;
+using Postiz.Integrations;
 using Postiz.Posts;
 using Postiz.PrePublishRender;
 using Xunit;
@@ -11,6 +12,26 @@ namespace Postiz.NET.UnitTests;
 
 public sealed class PostizClientTests
 {
+    [Fact]
+    public async Task Integration_settings_expose_the_typed_public_comment_contract()
+    {
+        using var handler = new StubHandler((request, _) =>
+        {
+            Assert.Equal("/public/v1/integration-settings/integration-1", request.RequestUri?.AbsolutePath);
+            return Json(HttpStatusCode.OK,
+                """{"output":{"settings":{},"postComments":{"contractVersion":"post-comments/v1","supported":true,"firstComment":{"key":"firstComment","type":"string","description":"First public comment"},"comments":{"key":"comments","type":"array","description":"Additional comments"},"nativeRepresentation":{"path":"posts[].value[1..]","delayKey":"delay","delayUnit":"minutes"}}}}""");
+        });
+        var client = CreateClient(handler);
+
+        var settings = await client.Integrations.GetSettingsAsync("integration-1");
+
+        Assert.NotNull(settings.PostComments);
+        Assert.True(settings.PostComments.Supported);
+        Assert.Equal(PostizPostSettingKeys.FirstComment, settings.PostComments.FirstComment.Key);
+        Assert.Equal(PostizPostSettingKeys.Comments, settings.PostComments.Comments.Key);
+        Assert.Equal("minutes", settings.PostComments.NativeRepresentation.DelayUnit);
+    }
+
     [Fact]
     public async Task Render_claim_is_tenant_scoped_typed_and_idempotent()
     {

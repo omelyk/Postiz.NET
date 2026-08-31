@@ -1,6 +1,6 @@
 # API coverage
 
-Supported by `Postiz.NET 1.0.0-alpha.11` against HappyM.Postiz based on upstream
+Supported by `Postiz.NET 1.0.0-beta.7` against HappyM.Postiz based on upstream
 `v2.23.0` `/public/v1`:
 
 | Area | Routes |
@@ -21,6 +21,17 @@ The provider catalog is generic by design: all provider-specific post settings
 are passed through `PostizPostTarget.Settings` as JSON and can be discovered via
 `GetSettingsAsync`. This covers every provider registered by the pinned fork
 without hard-coding social DTOs that change independently upstream.
+
+Public comments use the versioned `post-comments/v1` contract returned as
+`GetSettingsAsync(...).Output.postComments`. For providers where `supported` is
+`true`, `Settings.firstComment` is a string containing the first public comment
+below the post. `Settings.comments` is an ordered array whose items are strings
+or `{ "content": "...", "delay": 5 }` objects; `delay` is an optional
+non-negative number of minutes after the previous item. The API normalizes those
+keys to native `posts[].value[1..]` entries before validation and publication.
+`PostizPostSettingKeys` exposes the exact stable key names to .NET consumers.
+This is unrelated to inbox/chat replies. `validUntil` remains consumer metadata
+and is not a publishing-window setting in the Social Manager engine.
 
 The SDK intentionally does not expose dashboard-internal APIs such as billing,
 team administration, CopilotKit transport, announcements or browser session management.
