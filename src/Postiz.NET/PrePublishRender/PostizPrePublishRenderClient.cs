@@ -32,7 +32,28 @@ public sealed record RenderTarget(
     string Channel,
     string Caption,
     IReadOnlyList<RenderedMedia> Media,
-    RenderTargetExtras? Extras = null);
+    RenderTargetExtras? Extras = null,
+    string? PublishMode = null);
+
+public static class RenderPublishModes
+{
+    public const string StorySequence = "story_sequence";
+}
+
+public sealed record StorySequenceChildReceipt(
+    int SlideIndex,
+    string MediaId,
+    string ProviderId,
+    string ReleaseUrl,
+    string? ProviderContainerId = null,
+    bool Recovered = false);
+
+public sealed record StorySequencePublishReceipt(
+    string BundleId,
+    string Mode,
+    string Provider,
+    string Status,
+    IReadOnlyList<StorySequenceChildReceipt> Children);
 
 public sealed record ClaimRenderRequest(string WorkerId, int LeaseSeconds = 300);
 
@@ -68,7 +89,8 @@ public sealed record RenderOccurrence(
     DateTimeOffset? PublishedAtUtc = null,
     string? ReleaseId = null,
     string? ReleaseUrl = null,
-    string? ReasonCode = null);
+    string? ReasonCode = null,
+    StorySequencePublishReceipt? PublishReceipt = null);
 
 public sealed record ClaimedRenderOccurrence(
     string OccurrenceId,

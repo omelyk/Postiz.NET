@@ -83,12 +83,66 @@ public sealed class PostizClientTests
     }
 
     [Fact]
+    public async Task Story_sequence_attach_is_typed_and_receipt_children_are_deserialized()
+    {
+        using var handler = new StubHandler((request, _) =>
+        {
+            if (request.Method == HttpMethod.Post)
+            {
+                var body = request.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
+                Assert.Contains("\"publishMode\":\"story_sequence\"", body, StringComparison.Ordinal);
+                Assert.True(body.IndexOf("media-1", StringComparison.Ordinal) < body.IndexOf("media-2", StringComparison.Ordinal));
+                return Json(HttpStatusCode.OK,
+                    "{\"occurrenceId\":\"occ-1\",\"socialPostId\":\"post-1\",\"integrationId\":\"integration-1\",\"sequence\":0,\"scheduledFor\":\"2026-09-02T09:00:00Z\",\"status\":\"ReadyToPublish\",\"correlation\":{\"crmSocialPostId\":\"crm-1\",\"snapshotId\":\"snapshot-1\",\"pharmacyGroupId\":\"group-1\"}}" );
+            }
+
+            return Json(HttpStatusCode.OK,
+                "{\"occurrenceId\":\"occ-1\",\"socialPostId\":\"post-1\",\"integrationId\":\"integration-1\",\"sequence\":0,\"scheduledFor\":\"2026-09-02T09:00:00Z\",\"status\":\"Published\",\"correlation\":{\"crmSocialPostId\":\"crm-1\",\"snapshotId\":\"snapshot-1\",\"pharmacyGroupId\":\"group-1\"},\"publishReceipt\":{\"bundleId\":\"story-sequence:occ-1\",\"mode\":\"story_sequence\",\"provider\":\"instagram\",\"status\":\"Published\",\"children\":[{\"slideIndex\":0,\"mediaId\":\"media-1\",\"providerId\":\"ig-1\",\"releaseUrl\":\"https://ig.test/1\",\"recovered\":false},{\"slideIndex\":1,\"mediaId\":\"media-2\",\"providerId\":\"ig-2\",\"releaseUrl\":\"https://ig.test/2\",\"recovered\":false}]}}" );
+        });
+        var client = CreateClient(handler, "pharmacy-42");
+        var correlation = new RenderCorrelation("crm-1", "snapshot-1", "group-1");
+        RenderTarget[] targets =
+        [
+            new(
+                "integration-1",
+                "instagram",
+                "Story sequence",
+                [
+                    new("media-1", "image", "image/png"),
+                    new("media-2", "image", "image/png"),
+                ],
+                PublishMode: RenderPublishModes.StorySequence),
+        ];
+        var attach = AttachRenderedRequest.Create(
+            "occ-1", "opaque-token", correlation, targets, DateTimeOffset.Parse("2026-09-02T08:00:00Z"));
+
+        await client.PrePublishRender.AttachRenderedAsync("occ-1", attach, "attach-story");
+        var published = await client.PrePublishRender.GetAsync("occ-1");
+
+        Assert.Equal("story-sequence:occ-1", published.PublishReceipt?.BundleId);
+        Assert.Equal(["media-1", "media-2"], published.PublishReceipt?.Children.Select(item => item.MediaId));
+    }
+
+    [Fact]
     public void Render_reason_codes_are_strongly_mapped()
     {
         var exception = new PostizApiException(
             HttpStatusCode.Conflict, "publish_blocked_no_render", null, "{}");
 
         Assert.Equal(PostizApiReasonCode.PublishBlockedNoRender, exception.ReasonCode);
+    }
+
+    [Theory]
+    [InlineData("story_sequence_invalid", PostizApiReasonCode.StorySequenceInvalid)]
+    [InlineData("story_sequence_unsupported", PostizApiReasonCode.StorySequenceUnsupported)]
+    public void Story_sequence_reason_codes_are_strongly_mapped(
+        string code,
+        PostizApiReasonCode expected)
+    {
+        var exception = new PostizApiException(
+            HttpStatusCode.UnprocessableEntity, code, null, "{}");
+
+        Assert.Equal(expected, exception.ReasonCode);
     }
 
     [Fact]

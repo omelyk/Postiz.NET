@@ -43,6 +43,8 @@ public sealed class PostizApiException : HttpRequestException
         "publish_blocked_no_render" => PostizApiReasonCode.PublishBlockedNoRender,
         "occurrence_cancelled" => PostizApiReasonCode.OccurrenceCancelled,
         "occurrence_not_found" => PostizApiReasonCode.OccurrenceNotFound,
+        "story_sequence_invalid" => PostizApiReasonCode.StorySequenceInvalid,
+        "story_sequence_unsupported" => PostizApiReasonCode.StorySequenceUnsupported,
         "transient_engine" => PostizApiReasonCode.TransientEngine,
         _ => HttpReasonCode,
     };
@@ -98,5 +100,7 @@ public enum PostizApiReasonCode
     PublishBlockedNoRender,
     OccurrenceCancelled,
     OccurrenceNotFound,
+    StorySequenceInvalid,
+    StorySequenceUnsupported,
     TransientEngine,
 }

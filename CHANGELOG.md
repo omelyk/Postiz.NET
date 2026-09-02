@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.0-beta.8 — 2026-09-02
+
+- Added the additive `prepublish-render/v2` Story-sequence contract through `RenderPublishModes.StorySequence` and `RenderTarget.PublishMode`.
+- Added typed bundle and child receipts on `RenderOccurrence.PublishReceipt`, preserving ordered slide IDs and provider URLs for CRM audit.
+- Added structured `StorySequenceInvalid` and `StorySequenceUnsupported` reason codes.
+- Kept all `prepublish-render/v1` calls and one-media Story payloads source- and wire-compatible.
+
 ## 1.0.0-beta.7 — 2026-08-31
 
 Post-Settings schema: Warning
