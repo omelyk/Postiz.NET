@@ -134,9 +134,14 @@ internal sealed class PostizTransport(HttpClient httpClient, PostizOptions optio
 
     private static TimeSpan GetRetryDelay(HttpResponseMessage response, int attempt)
     {
-        if (response.Headers.RetryAfter?.Delta is { } delta)
+        var retryAfter = response.Headers.RetryAfter;
+        var delay = retryAfter?.Delta
+            ?? (retryAfter?.Date is { } date ? date - DateTimeOffset.UtcNow : (TimeSpan?)null);
+        if (delay is { } delta)
         {
-            return delta > TimeSpan.FromSeconds(30) ? TimeSpan.FromSeconds(30) : delta;
+            return delta <= TimeSpan.Zero
+                ? TimeSpan.Zero
+                : delta > TimeSpan.FromSeconds(30) ? TimeSpan.FromSeconds(30) : delta;
         }
 
         return TimeSpan.FromMilliseconds(Math.Min(250 * Math.Pow(2, attempt), 4_000));

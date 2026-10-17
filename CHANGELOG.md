@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Honor HTTP-date `Retry-After` responses on idempotent requests, including expired dates and cancellation during the wait. Preserve the existing delay cap and single-attempt write boundary.
+
 ## 1.0.0-beta.8 — 2026-09-02
 
 - Added the additive `prepublish-render/v2` Story-sequence contract through `RenderPublishModes.StorySequence` and `RenderTarget.PublishMode`.
