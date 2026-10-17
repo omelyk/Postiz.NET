@@ -2,28 +2,27 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using Postiz;
-using Postiz.Posts;
 using Xunit;
 
 namespace Postiz.NET.UnitTests;
 
 // Explicit transport fixture: no network, social account, or appliance is used.
-public sealed class DurableSimulatedPublicationTests
+public sealed class DurableSimulatedPostMutationTests
 {
     [Fact]
-    public async Task Lost_write_response_is_not_replayed_and_durable_receipt_survives_transport_recreation()
+    public async Task Lost_schedule_response_is_not_replayed_and_existing_post_readback_survives_transport_recreation()
     {
         var directory = Path.Combine(Directory.GetCurrentDirectory(), ".tmpwork", "finalizzazione-editoriale",
             "simulated-publication", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
         var receiptPath = Path.Combine(directory, "synthetic-receipt.json");
+        await File.WriteAllTextAsync(receiptPath, """{"id":"sim-post-1","organizationId":"org-a","releaseId":"sim-release-1","state":"DRAFT"}""");
         using (var writer = new SimulatedHandler(receiptPath))
         using (var http = new HttpClient(writer) { BaseAddress = new Uri("https://postiz.test/") })
         {
             var client = Client(http, "crm-a-key", "org-a");
-            await Assert.ThrowsAsync<HttpRequestException>(() => client.Posts.PublishYoutubeAsync(
-                new PublishYoutubeRequest("simulated-channel", "Synthetic publication", YoutubeFormatHints.Video,
-                    VideoMediaId: "synthetic-video")));
+            await Assert.ThrowsAsync<HttpRequestException>(() =>
+                client.Posts.ChangeStatusAsync("sim-post-1", "schedule"));
             Assert.Equal(1, writer.WriteCalls);
         }
 
@@ -31,9 +30,9 @@ public sealed class DurableSimulatedPublicationTests
         using var reader = new SimulatedHandler(receiptPath);
         using var readHttp = new HttpClient(reader) { BaseAddress = new Uri("https://postiz.test/") };
         var receipt = await Client(readHttp, "crm-a-key", "org-a").Posts.GetByReleaseIdAsync("sim-release-1");
-        Assert.Equal("Published", receipt.GetProperty("status").GetString());
+        Assert.Equal("QUEUE", receipt.GetProperty("state").GetString());
         Assert.Equal("sim-release-1", receipt.GetProperty("releaseId").GetString());
-        Assert.True(receipt.GetProperty("simulated").GetBoolean());
+        Assert.Equal("sim-post-1", receipt.GetProperty("id").GetString());
         Assert.Equal(0, reader.WriteCalls);
 
         var forbidden = await Assert.ThrowsAsync<PostizApiException>(() =>
@@ -63,22 +62,24 @@ public sealed class DurableSimulatedPublicationTests
             if (boundOrganization is null || organization != boundOrganization)
                 return Json(HttpStatusCode.Forbidden, "{}");
 
-            if (request.Method == HttpMethod.Post && request.RequestUri!.AbsolutePath == "/public/v1/posts/youtube/publish")
+            if (request.Method == HttpMethod.Put && request.RequestUri!.AbsolutePath == "/public/v1/posts/sim-post-1/status")
             {
                 WriteCalls++;
+                using var body = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken));
+                Assert.Equal("schedule", body.RootElement.GetProperty("status").GetString());
                 var receipt = JsonSerializer.Serialize(new
                 {
-                    organization, releaseId = "sim-release-1", status = "Published", simulated = true,
-                    channel = "simulated-channel",
+                    id = "sim-post-1", organizationId = organization, releaseId = "sim-release-1", state = "QUEUE",
                 });
-                // The simulated provider's result is durably closed before the response is lost.
-                await using (var file = new FileStream(receiptPath, FileMode.CreateNew, FileAccess.Write,
+                // A known pre-existing post changes to QUEUE before the simulated response is lost.
+                // This does not simulate provider publication, Temporal, or a YouTube registry.
+                await using (var file = new FileStream(receiptPath, FileMode.Create, FileAccess.Write,
                                  FileShare.None, 4096, FileOptions.WriteThrough))
                 {
                     await file.WriteAsync(Encoding.UTF8.GetBytes(receipt), cancellationToken);
                     file.Flush(flushToDisk: true);
                 }
-                throw new HttpRequestException("Synthetic response loss after simulated provider commit.");
+                throw new HttpRequestException("Synthetic response loss after simulated scheduling commit.");
             }
 
             if (request.Method == HttpMethod.Get && request.RequestUri!.AbsolutePath == "/public/v1/posts/by-release-id/sim-release-1")
@@ -86,7 +87,7 @@ public sealed class DurableSimulatedPublicationTests
                 if (!File.Exists(receiptPath)) return Json(HttpStatusCode.NotFound, "{}");
                 var receipt = await File.ReadAllTextAsync(receiptPath, cancellationToken);
                 using var document = JsonDocument.Parse(receipt);
-                return document.RootElement.GetProperty("organization").GetString() == organization
+                return document.RootElement.GetProperty("organizationId").GetString() == organization
                     ? Json(HttpStatusCode.OK, receipt)
                     : Json(HttpStatusCode.NotFound, "{}");
             }
