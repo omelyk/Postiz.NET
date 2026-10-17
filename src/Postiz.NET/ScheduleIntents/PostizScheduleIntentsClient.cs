@@ -36,20 +36,10 @@ public interface IPostizScheduleIntentsClient
         string intentId, ScheduleIntentRequest request, CancellationToken cancellationToken = default);
 }
 
-/// <summary>Additive client for editorial.schedule-intent/v1. Legacy clients remain unchanged.</summary>
-public sealed class PostizScheduleIntentsClient : IPostizScheduleIntentsClient
+/// <summary>Current scheduling operations, composed by PostizClient with its shared transport.</summary>
+internal sealed class PostizScheduleIntentsClient(PostizTransport transport) : IPostizScheduleIntentsClient
 {
     private const string BasePath = "public/v1/prepublish-render/schedule-intents";
-    private readonly PostizTransport transport;
-
-    public PostizScheduleIntentsClient(HttpClient httpClient, PostizOptions options)
-    {
-        ArgumentNullException.ThrowIfNull(httpClient);
-        ArgumentNullException.ThrowIfNull(options);
-        options.Validate();
-        httpClient.BaseAddress ??= options.BaseAddress;
-        transport = new PostizTransport(httpClient, options);
-    }
 
     public async Task<ScheduleIntentReceipt> CreateAsync(
         string intentId, ScheduleIntentRequest request, CancellationToken cancellationToken = default)
@@ -103,7 +93,7 @@ public static class ScheduleIntentPayload
         Required(revisionId, nameof(revisionId));
         Required(bindingKey, nameof(bindingKey));
         ValidatePost(post);
-        // Keep the same post wire projection and serializer as the legacy Posts.Create path.
+        // The envelope uses the current post wire projection and shared serializer.
         var payloadJson = JsonSerializer.Serialize(new
         {
             contract = Contract,

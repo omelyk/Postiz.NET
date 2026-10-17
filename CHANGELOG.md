@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Prepared an additive standalone `PostizScheduleIntentsClient` with frozen UTF-8 payload hashing and typed create/lookup/cancel receipts for `editorial.schedule-intent/v1`. Preserves legacy APIs and single-attempt writes; source fixtures are not compiled or executed, and engine compatibility is not qualified.
+- Integrated `ScheduleIntents` into the current `IPostizClient` with frozen UTF-8 payload hashing and typed create/lookup/cancel receipts. Removed the standalone public client and historical signature-preservation requirement; consumers advance with this contract. Source fixtures are not compiled or executed, and the current appliance contract is not qualified.
 - Honor HTTP-date `Retry-After` responses on idempotent requests, including expired dates and cancellation during the wait. Preserve the existing delay cap and single-attempt write boundary.
 
 ## 1.0.0-beta.8 — 2026-09-02

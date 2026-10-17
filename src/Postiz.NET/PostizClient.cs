@@ -8,6 +8,7 @@ using Postiz.Media;
 using Postiz.Notifications;
 using Postiz.Posts;
 using Postiz.PrePublishRender;
+using Postiz.ScheduleIntents;
 using Postiz.Transport;
 using Postiz.Webhooks;
 
@@ -30,6 +31,7 @@ public sealed class PostizClient : IPostizClient
         Chat = new PostizChatClient(transport);
         Posts = new PostizPostsClient(transport);
         PrePublishRender = new PostizPrePublishRenderClient(transport);
+        ScheduleIntents = new PostizScheduleIntentsClient(transport);
         Analytics = new PostizAnalyticsClient(transport);
         Groups = new PostizGroupsClient(transport);
         Health = new PostizHealthClient(transport);
@@ -49,6 +51,8 @@ public sealed class PostizClient : IPostizClient
     public IPostizPostsClient Posts { get; }
 
     public IPostizPrePublishRenderClient PrePublishRender { get; }
+
+    public IPostizScheduleIntentsClient ScheduleIntents { get; }
 
     public IPostizAnalyticsClient Analytics { get; }
 

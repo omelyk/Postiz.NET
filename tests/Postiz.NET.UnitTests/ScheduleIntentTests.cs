@@ -15,12 +15,12 @@ public sealed class ScheduleIntentTests
     private static readonly DateTimeOffset Date = new(2026, 10, 20, 12, 30, 0, TimeSpan.FromHours(2));
 
     [Fact]
-    public async Task Helper_freezes_the_same_post_wire_as_legacy_create_and_hashes_exact_utf8()
+    public async Task Helper_freezes_the_current_post_wire_and_hashes_exact_utf8()
     {
-        string? legacyWire = null;
+        string? postWire = null;
         using var handler = new Handler(async (request, ct) =>
         {
-            legacyWire = await request.Content!.ReadAsStringAsync(ct);
+            postWire = await request.Content!.ReadAsStringAsync(ct);
             return Json(HttpStatusCode.OK, "[]");
         });
         using var http = Http(handler);
@@ -28,8 +28,8 @@ public sealed class ScheduleIntentTests
         var frozen = ScheduleIntentPayload.Create("command-1", "crm-occ-1", "revision-1", "binding-a-test", post);
         await new PostizClient(http, Options()).Posts.CreateAsync(post);
         using var envelope = JsonDocument.Parse(frozen.PayloadJson);
-        using var legacy = JsonDocument.Parse(legacyWire!);
-        Assert.Equal(legacy.RootElement.GetRawText(), envelope.RootElement.GetProperty("post").GetRawText());
+        using var currentPost = JsonDocument.Parse(postWire!);
+        Assert.Equal(currentPost.RootElement.GetRawText(), envelope.RootElement.GetProperty("post").GetRawText());
         Assert.Equal(ScheduleIntentPayload.Contract, envelope.RootElement.GetProperty("contract").GetString());
         Assert.Equal("command-1", envelope.RootElement.GetProperty("commandId").GetString());
         Assert.Equal("crm-occ-1", envelope.RootElement.GetProperty("crmOccurrenceId").GetString());
@@ -120,7 +120,7 @@ public sealed class ScheduleIntentTests
     {
         using var handler = new Handler((_, _) => Task.FromResult(Json(HttpStatusCode.OK, "{}")));
         using var http = Http(handler);
-        var client = new PostizScheduleIntentsClient(http, Options());
+        var client = new PostizClient(http, Options()).ScheduleIntents;
         await Assert.ThrowsAsync<ArgumentException>(() => client.GetAsync(id));
         Assert.Equal(0, handler.Calls);
     }
@@ -135,7 +135,7 @@ public sealed class ScheduleIntentTests
             return Task.FromResult(Receipt(id, Frozen()));
         });
         using var http = Http(handler);
-        var client = new PostizScheduleIntentsClient(http, Options());
+        var client = new PostizClient(http, Options()).ScheduleIntents;
         Assert.Equal(id, (await client.GetAsync(id)).IntentId);
         await Assert.ThrowsAsync<ArgumentException>(() => client.GetAsync(id + "x"));
         Assert.Equal(1, handler.Calls);
@@ -169,11 +169,11 @@ public sealed class ScheduleIntentTests
             return Receipt("intent_A-1", frozen, path.EndsWith("/cancel", StringComparison.Ordinal));
         });
         using var http = Http(handler);
-        var client = new PostizScheduleIntentsClient(http, Options());
+        var client = new PostizClient(http, Options()).ScheduleIntents;
         var created = await client.CreateAsync("intent_A-1", frozen);
         var replay = await client.CreateAsync("intent_A-1", frozen);
         // New SDK object receives the same stored strings; nothing is rebuilt from mutable business input.
-        var lookup = await new PostizScheduleIntentsClient(http, Options()).GetAsync("intent_A-1");
+        var lookup = await new PostizClient(http, Options()).ScheduleIntents.GetAsync("intent_A-1");
         var cancelled = await client.CancelAsync("intent_A-1", frozen);
         Assert.Equal("committed", created.State);
         Assert.Equal("pending", created.DispatchState);
@@ -199,7 +199,7 @@ public sealed class ScheduleIntentTests
     {
         using var handler = new Handler((_, _) => Task.FromResult(Json(HttpStatusCode.OK, "{}")));
         using var http = Http(handler);
-        var client = new PostizScheduleIntentsClient(http, Options());
+        var client = new PostizClient(http, Options()).ScheduleIntents;
         var frozen = Frozen();
         frozen = frozen with { PayloadJson = frozen.PayloadJson + " " };
         await Assert.ThrowsAsync<ArgumentException>(() => cancel
@@ -222,7 +222,7 @@ public sealed class ScheduleIntentTests
             return Task.FromResult(response);
         });
         using var http = Http(handler);
-        var client = new PostizScheduleIntentsClient(http, Options());
+        var client = new PostizClient(http, Options()).ScheduleIntents;
         await Assert.ThrowsAnyAsync<HttpRequestException>(() => cancel
             ? client.CancelAsync("intent-1", Frozen()) : client.CreateAsync("intent-1", Frozen()));
         Assert.Equal(1, handler.Calls);
@@ -246,7 +246,7 @@ public sealed class ScheduleIntentTests
                 : Json(HttpStatusCode.NotFound, "{\"code\":\"schedule_intent_not_found\"}"));
         });
         using var http = Http(handler);
-        var client = new PostizScheduleIntentsClient(http, Options());
+        var client = new PostizClient(http, Options()).ScheduleIntents;
         Assert.Equal("committed", (await client.GetAsync("intent-1")).State);
         Assert.Equal(2, handler.Calls);
         var error = await Assert.ThrowsAsync<PostizApiException>(() => client.GetAsync("intent-1"));
@@ -263,7 +263,7 @@ public sealed class ScheduleIntentTests
         using var handler = new Handler((_, _) => Task.FromResult(Json(HttpStatusCode.Conflict,
             "{\"code\":\"" + code + "\",\"token\":\"do-not-return-token\",\"password\":\"do-not-return-password\"}")));
         using var http = Http(handler);
-        var client = new PostizScheduleIntentsClient(http, Options());
+        var client = new PostizClient(http, Options()).ScheduleIntents;
         var error = await Assert.ThrowsAsync<PostizApiException>(() => client.CancelAsync("intent-1", Frozen()));
         Assert.Equal(code, error.ErrorCode);
         Assert.Equal(PostizApiReasonCode.Conflict, error.ReasonCode);
@@ -277,7 +277,7 @@ public sealed class ScheduleIntentTests
     {
         using var handler = new Handler((_, _) => Task.FromResult(Json(HttpStatusCode.OK, "{}")));
         using var http = Http(handler);
-        var client = new PostizScheduleIntentsClient(http, Options());
+        var client = new PostizClient(http, Options()).ScheduleIntents;
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => client.CreateAsync("intent-1", Frozen(), cancellation.Token));
@@ -297,20 +297,24 @@ public sealed class ScheduleIntentTests
             throw new InvalidOperationException("Cancellation must have been forwarded.");
         });
         using var http = Http(handler);
-        var client = new PostizScheduleIntentsClient(http, Options());
+        var client = new PostizClient(http, Options()).ScheduleIntents;
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => client.CreateAsync("intent-1", Frozen(), cancellation.Token));
         Assert.Equal(1, handler.Calls);
     }
 
     [Fact]
-    public void Legacy_public_interface_and_constructor_remain_usable_without_new_members()
+    public async Task Current_client_composes_schedule_operations_on_its_shared_transport()
     {
-        Assert.DoesNotContain(typeof(IPostizClient).GetProperties(), p => p.PropertyType == typeof(IPostizScheduleIntentsClient));
-        Assert.NotNull(typeof(PostizClient).GetConstructor([typeof(HttpClient), typeof(PostizOptions)]));
-        Assert.NotNull(typeof(CreatePostRequest).GetConstructor([typeof(PostizPostType), typeof(DateTimeOffset),
-            typeof(IReadOnlyList<PostizPostTarget>), typeof(bool), typeof(IReadOnlyList<PostizTag>),
-            typeof(int?), typeof(string), typeof(string)]));
-        // Reflection is only a source-shape regression assertion; old binary ABI is a separate Root gate.
+        using var handler = new Handler((request, _) =>
+        {
+            Assert.Equal("org-a", request.Headers.GetValues("X-HappyM-Organization-Id").Single());
+            return Task.FromResult(Receipt("intent-current", Frozen()));
+        });
+        using var http = Http(handler);
+        IPostizClient client = new PostizClient(http, Options());
+        Assert.Same(client.ScheduleIntents, client.ScheduleIntents);
+        Assert.Equal("intent-current", (await client.ScheduleIntents.GetAsync("intent-current")).IntentId);
+        Assert.Equal(1, handler.Calls);
     }
 
     private static ScheduleIntentRequest Frozen() => ScheduleIntentPayload.Create(

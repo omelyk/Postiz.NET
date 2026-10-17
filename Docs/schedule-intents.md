@@ -1,15 +1,16 @@
 # Schedule intents — Source candidate only
 
-`editorial.schedule-intent/v1` is an additive, uncompiled source candidate. The
+`editorial.schedule-intent/v1` is the current, uncompiled source candidate. The
 frozen beta8 appliance does not implement this contract. No package/image or
 runtime compatibility is qualified by these files. Capability enablement,
 schema, deployment, and any real integration test remain explicit release gates.
 
-Use `Postiz.ScheduleIntents.IPostizScheduleIntentsClient` through the standalone
-`PostizScheduleIntentsClient(HttpClient, PostizOptions)`. `IPostizClient`,
-`PostizClient`, legacy DTO constructors, DI registrations and transport are
-unchanged. This is a scheduling receipt; it never establishes that a social
-publication occurred.
+Use `IPostizClient.ScheduleIntents` from the current `PostizClient`. The typed
+operations share the client's transport, authentication and configuration.
+There is no standalone public schedule client or compatibility adapter, and
+preserving previous interfaces or constructors is not a product requirement.
+This is a scheduling receipt; it never establishes that a social publication
+occurred.
 
 ## Freeze once
 
@@ -24,7 +25,7 @@ and comment normalization remain authoritative.
 The envelope contains contract, commandId, crmOccurrenceId, revisionId,
 bindingKey and post. Post uses the existing Posts.Create wire projection and
 serializer: lowercase type, offset date in `O` format, target values and
-legacy null omission. Organization is never added to the envelope. BindingKey
+shared null omission. Organization is never added to the envelope. BindingKey
 must come from server configuration, rather than browser input.
 
 `PayloadHash` is `sha256-` plus 64 lowercase hex digits over the exact UTF-8
@@ -56,7 +57,7 @@ Writes include `Idempotency-Key: id` and use one HTTP attempt, including after
 ID and the server-persisted payload hash form the authoritative key. An HTTP
 header alone does not establish server idempotency. GET retains the existing
 bounded read retry policy. A lookup 404 stays `PostizApiException` with
-`schedule_intent_not_found`; it never triggers create or a legacy fallback.
+`schedule_intent_not_found`; it never triggers a replacement create.
 
 The existing raw Authorization, optional X-HappyM-Organization-Id, correlation,
 cancellation, request timeout and redacted error transport are reused. API keys
@@ -75,18 +76,20 @@ Structured server codes remain in `PostizApiException.ErrorCode` with the
 existing HTTP reason mapping: schedule_intent_invalid (400),
 schedule_intent_not_found (404), schedule_intent_conflict and
 schedule_intent_cancel_unsafe (409), schedule_intents_disabled and
-schedule_intent_transient (503). No new legacy enum member is required.
+schedule_intent_transient (503).
 
 ## Validation and version plan
 
 `ScheduleIntentTests` contains in-memory HttpMessageHandler fixtures for wire
 parity, hash/UTF-8 limits, validation, routing/scope headers, DTO replay/tombstone,
-write single-attempt, lookup retry/404, error redaction and cancellation. They
+write single-attempt, lookup retry/404, error redaction, cancellation and current
+client composition. They
 are prepared source only: no compiler, syntax runner, tests or server were run.
 Fixture replay is not proof of a server transaction, SQL concurrency, restart,
-cross-process A1/A2, dispatch, provider execution or historical binary ABI.
+cross-process A1/A2, dispatch or provider execution.
 
 Proposed local version after source commit: `1.0.0-beta.8.editorial.intent.<commit12>`.
 Directory.Build.props remains beta8; nothing is built, packed or published here.
 Root must qualify producer/consumer pins and the new appliance capability before
-adoption. Existing beta8 clients and their retry behavior remain unchanged.
+adoption. The SDK and its consumers advance together on this current contract;
+there is no gate requiring compatibility with historical SDK clients or objects.
