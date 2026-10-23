@@ -58,7 +58,8 @@ public sealed partial class PostizNativeConsumerClient
             || options.BaseAddress.Fragment.Length != 0 || !Identifier(options.InternalClientId, 128)
             || !Credential(options.InternalClientSecret, 32, 4096)
             || new[] { "Authorization", "X-HappyM-Organization-Id", "X-HappyM-Client-Id",
-                "X-HappyM-Native-Fixture-Authorization" }.Any(httpClient.DefaultRequestHeaders.Contains))
+                "X-HappyM-Native-Fixture-Authorization", "X-HappyM-Native-System-Authorization31",
+                "X-HappyM-Native-System-Organization31" }.Any(httpClient.DefaultRequestHeaders.Contains))
             throw new ArgumentException("A qualified loopback native control transport is required.");
         http = httpClient;
         baseAddress = new Uri(options.BaseAddress.AbsoluteUri.TrimEnd('/') + "/");
@@ -125,7 +126,8 @@ public sealed partial class PostizNativeConsumerClient
     }
 
     private async Task<T> SendAsync<T>(string path, object input, string purpose,
-        Func<JsonElement, CancellationToken, Task<T>> consume, CancellationToken cancellationToken)
+        Func<JsonElement, CancellationToken, Task<T>> consume, CancellationToken cancellationToken,
+        NativeAdministrativeCredential31? administrator = null, HttpMethod? method = null)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(deadline);
@@ -134,8 +136,10 @@ public sealed partial class PostizNativeConsumerClient
         try
         {
             var destination = new Uri(baseAddress, path);
-            using var request = new HttpRequestMessage(HttpMethod.Post, destination) { Content = new ByteArrayContent(body) };
-            request.Content.Headers.ContentType = new("application/json");
+            using var request = new HttpRequestMessage(method ?? HttpMethod.Post, destination);
+            if (request.Method != HttpMethod.Get)
+            { request.Content = new ByteArrayContent(body); request.Content.Headers.ContentType = new("application/json"); }
+            if (administrator is not null) administrator.Attach(request, controlSecret, purpose);
             request.Headers.TryAddWithoutValidation("Authorization", "Bearer " + controlSecret);
             request.Headers.TryAddWithoutValidation("X-HappyM-Client-Id", clientId);
             request.Headers.TryAddWithoutValidation("X-HappyM-Native-Fixture-Authorization", purpose);
