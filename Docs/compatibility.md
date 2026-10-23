@@ -1,17 +1,20 @@
-# Current producer and consumer contract
+# Compatibility
 
-The new product uses one current SDK/appliance/Extension contract. Historical
-interfaces, constructors, binary ABI and demonstration seeds are not compatibility
-requirements. SDK and consumers advance together; no compatibility adapter or
-standalone schedule client is maintained for older callers.
+| Postiz.NET | Postiz | Contract |
+|---|---|---|
+| 1.0.0-alpha.1 | v2.23.0 | `/public/v1`, fixture contract tests |
+| 1.0.0-alpha.2 | HappyM.Postiz / v2.23.0 | complete HappyM public integration surface, provider catalog and signed webhooks |
+| 1.0.0-alpha.11 | HappyM.Postiz / v2.23.0 | native org-scoped media library and operational AI chat |
 
-The proposed local source version `1.0.0-beta.8.editorial.intent.<commit12>` exposes
-`IPostizClient.ScheduleIntents` for `editorial.schedule-intent/v1`. It is not built
-or qualified. The current appliance successor and consumer pins must be qualified
-together before enablement. An old beta8 image does not implement this contract
-and is not an alternative execution path.
+The alpha is not declared compatible with `latest`. Each new Postiz baseline
+must run fixture tests and opt-in integration tests against the pinned image.
+Stable `1.0.0` is gated on the missing webhook/version contracts and the HappyM
+two-pharmacy end-to-end scenario.
 
-Qualify the current wire contract, authentication, receipts, cancellation,
-transactional behavior and two-replica scenario on the assigned target. These
-are product correctness checks, not historical compatibility gates. See
-[schedule intents](schedule-intents.md) for payload and recovery rules.
+## Current Source candidate beta.9
+
+SDK and engine must be qualified together on prepublish-render/v3. contentMode is mandatory; route /public/v1/prepublish-render/occurrences remains. No v1/v2 attach fallback is supplied. beta.9 here is a Source version, not a published NuGet/image pin or live compatibility claim. Contract tests net8/net9, engine suites and a pinned synthetic-provider integration remain for Root/owners.
+
+## Additional native TEST bootstrap Source delta
+
+The new standalone PostizNativeConsumerClient and happym.native-consumer-bootstrap/v1 require a new paired SDK/engine build after the qualified ep9/v3 source. Existing beta9 package pins do not contain this increment and must not be reused as proof. This contract is local TEST only, requires the native owner plus separate TEST-purpose credential and does not qualify general PROD first bootstrap. See native-consumer-test-bootstrap-v1.md.

@@ -1,5 +1,19 @@
 # Changelog
 
+## Native TEST bootstrap - additional Source delta, not released
+
+- Added a separate native TEST consumer bootstrap client with a protected RAM credential receiver and a public receipt containing no key. Ordinary clients/factories remain unchanged.
+- Added explicit first-write/exact and require-existing replay semantics; the paired engine never silently reactivates users, changes roles, rewrites scoped keys or falls back to SYSTEM credentials.
+- Added native fixture provision calls using the existing TEST-purpose contract, exact synthetic IDs and no uncertain-write retry. PROD first bootstrap remains unimplemented.
+- Additional deterministic Source tests are prepared only. This delta requires a new immutable SDK package and paired engine qualification; prior beta9 package PASS does not qualify these additions.
+
+## 1.0.0-beta.9 — Source candidate, not released
+
+- Breaking current attach contract `prepublish-render/v3`: required target contentMode text_only/media contributes to the canonical digest; existing Public API route and lease/idempotency protocol remain.
+- Text-only requires exactly one caption target and no media/thumbnail/story sequence. Media retains1..10 plus existing Story guards.
+- Provider settings/content/media validation is shared with ordinary post validation and runs before Ready inside the serializable attach transaction; no Temporal workflow or activity ABI changes.
+- Source tests/goldens added; no build, tests, package/image release or runtime/UAT qualification claimed by this Source delivery.
+
 ## Unreleased
 
 - Integrated `ScheduleIntents` into the current `IPostizClient` with frozen UTF-8 payload hashing and typed create/lookup/cancel receipts. Removed the standalone public client and historical signature-preservation requirement; consumers advance with this contract. Source fixtures are not compiled or executed, and the current appliance contract is not qualified.
