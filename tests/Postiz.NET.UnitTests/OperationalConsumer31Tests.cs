@@ -166,6 +166,27 @@ public sealed class OperationalConsumer31Tests
         else Assert.Equal("Absent", (await Client(http).ObserveOperationalRegistration31Async(Registration, Purpose, admin)).State);
         Assert.Equal(1, h.Calls);
     }
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Operational_fixture_mutation_is_scoped_and_carries_current_SYSTEM_authority(bool foreignReceipt)
+    {
+        var digest = Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(new[] {
+            Appliance.ClientId, Appliance.ApplicationEnvironmentId, Appliance.LogicalDeploymentId, Appliance.InstallationId,
+            "hm-" + Workspace("pharmacy-1"), "success" }))).ToLowerInvariant();
+        using var h = new Stub(request => {
+            Assert.Equal(HttpMethod.Post, request.Method); Assert.EndsWith("/operational-fixture31", request.RequestUri!.AbsolutePath);
+            Assert.Equal(Admin, request.Headers.GetValues("X-HappyM-Native-System-Authorization31").Single());
+            var payload = JsonNode.Parse(request.Content!.ReadAsStringAsync().GetAwaiter().GetResult())!;
+            Assert.Equal(Operation, payload["operationId"]!.GetValue<string>());
+            Assert.Equal(Consumer.ClientId, payload["consumerBinding"]!["clientId"]!.GetValue<string>());
+            return Response(JsonSerializer.SerializeToNode(new { contract = "happym.synthetic-delivery/v1", mode = "SIMULATION",
+                integrationId = foreignReceipt ? "foreign" : "happym-sim-" + digest[..40], identifier = "happym-test-fixture", label = "[SIMULAZIONE] success" })!.AsObject()); });
+        using var http = Http(h); using var admin = Authority();
+        if (foreignReceipt) await Assert.ThrowsAsync<PostizNativeOutcomeUnknownException>(() => Client(http).ProvisionOperationalFixture31Async(Bootstrap, "success", Purpose, admin));
+        else Assert.Equal("happym-sim-" + digest[..40], (await Client(http).ProvisionOperationalFixture31Async(Bootstrap, "success", Purpose, admin)).IntegrationId);
+        Assert.Equal(1, h.Calls);
+    }
     private sealed class CancelAtEof(byte[] bytes, CancellationTokenSource cancellation) : MemoryStream(bytes)
     {
         public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken ct = default)

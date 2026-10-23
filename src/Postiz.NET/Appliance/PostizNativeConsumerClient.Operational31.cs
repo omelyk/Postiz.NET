@@ -144,6 +144,25 @@ public sealed partial class PostizNativeConsumerClient
         }, ct, administrator, readExisting ? HttpMethod.Get : HttpMethod.Post).ConfigureAwait(false);
     }
 
+    public async Task<NativeFixtureProvisionReceipt> ProvisionOperationalFixture31Async(NativeOperationalBootstrapRequest31 scope,
+        string profile, string purpose, NativeAdministrativeCredential31 administrator, CancellationToken ct = default)
+    {
+        ValidateOperationalBootstrap31(scope); ValidatePurpose(purpose); ArgumentNullException.ThrowIfNull(administrator);
+        if (!Profiles.Contains(profile, StringComparer.Ordinal)) throw new ArgumentException("An existing synthetic profile is required.");
+        var (org, _) = SharedIdentity30(scope.ConsumerBinding, scope.Consumer);
+        var expectedId = FixtureId(new(scope.ApplianceBinding, org, profile));
+        var request = new { contract = "happym.postiz-operational-fixture31/v1", scope.OperationId,
+            scope.ApplianceBinding, scope.ConsumerBinding, scope.Consumer, scope.RequestId, profile };
+        return await SendAsync("internal/happym/appliance/native-consumer/operational-fixture31", request, purpose, (root, _) => {
+            RequireObject(root, "contract", "mode", "integrationId", "identifier", "label");
+            if (String(root, "contract") != SyntheticDeliveryContract.Contract || String(root, "mode") != SyntheticDeliveryContract.Mode
+                || String(root, "integrationId") != expectedId || String(root, "identifier") != "happym-test-fixture"
+                || String(root, "label") != "[SIMULAZIONE] " + profile) throw new JsonException("Invalid authorized fixture receipt.");
+            return Task.FromResult(new NativeFixtureProvisionReceipt(SyntheticDeliveryContract.Contract, SyntheticDeliveryContract.Mode,
+                expectedId, "happym-test-fixture", "[SIMULAZIONE] " + profile));
+        }, ct, administrator).ConfigureAwait(false);
+    }
+
     public static NativeOperationalRegistration31 ParseOperationalRegistration31(JsonElement root, NativeOperationalRegistrationRequest31 expected,
         string systemOrganization)
     {
