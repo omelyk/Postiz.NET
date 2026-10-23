@@ -42,6 +42,7 @@ public sealed record NativeOperationalBootstrapRequest31(string Contract, string
     NativeConsumerIdentity30 ConsumerBinding, NativeConsumerScope Consumer, string RequestId);
 public sealed record NativeOperationalBootstrapReceipt31(string Contract, string OperationId, NativeConsumerBinding ApplianceBinding,
     NativeConsumerIdentity30 ConsumerBinding, NativeConsumerScope Consumer, string RequestId, string OrganizationId, string UserId);
+public sealed record NativeOperationalRegistrationState31(string Contract, string OperationId, string State);
 public sealed record NativeOperationalWorkspaceState31(string Contract, string OperationId, string RequestId, string OrganizationId,
     string UserId, NativeConsumerScope Consumer, string State);
 public interface IPostizOperationalNativeCredentialSink31
@@ -76,6 +77,21 @@ public sealed partial class PostizNativeConsumerClient
         var id = OperationalId31(expected.ApplianceBinding, expected.ConsumerBinding, expected.RequestId, expected.InputSha256);
         return await SendAsync("internal/happym/appliance/native-consumer/operational31/" + id, expected, purpose,
             (root, _) => Task.FromResult(ParseOperationalRegistration31(root, expected, administrator.Organization)), ct, administrator, HttpMethod.Get).ConfigureAwait(false);
+    }
+
+    public async Task<NativeOperationalRegistrationState31> ObserveOperationalRegistration31Async(NativeOperationalRegistrationRequest31 expected,
+        string purpose, NativeAdministrativeCredential31 administrator, CancellationToken ct = default)
+    {
+        ValidateRegistration31(expected); ValidatePurpose(purpose); ArgumentNullException.ThrowIfNull(administrator);
+        var id = OperationalId31(expected.ApplianceBinding, expected.ConsumerBinding, expected.RequestId, expected.InputSha256);
+        return await SendAsync("internal/happym/appliance/native-consumer/operational31/" + id + "/status", expected, purpose,
+            (root, _) => {
+                RequireObject(root, "contract", "operationId", "state"); var state = String(root, "state");
+                if (String(root, "contract") != "happym.postiz-operational-registration-state31/v1"
+                    || String(root, "operationId") != id || state is not ("Absent" or "Present"))
+                    throw new JsonException("Invalid observed registration state.");
+                return Task.FromResult(new NativeOperationalRegistrationState31("happym.postiz-operational-registration-state31/v1", id, state));
+            }, ct, administrator, HttpMethod.Get, expected).ConfigureAwait(false);
     }
 
     public async Task<NativeOperationalWorkspaceState31> ObserveOperationalWorkspace31Async(NativeOperationalBootstrapRequest31 expected,

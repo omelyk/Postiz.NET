@@ -145,6 +145,27 @@ public sealed class OperationalConsumer31Tests
             Bootstrap, Purpose, admin, sink, ct: cancellation.Token));
         Assert.Equal(0, sink.Calls); Assert.Equal(1, h.Calls);
     }
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Registration_unknown_is_reconciled_by_an_admin_GET_and_never_by_repeating_POST(bool forgedReady)
+    {
+        var body = JsonSerializer.SerializeToNode(new { contract = "happym.postiz-operational-registration-state31/v1",
+            operationId = Operation, state = "Absent" }, Json)!.AsObject();
+        if (forgedReady) body["ready"] = true;
+        using var h = new Stub(request => { Assert.Equal(HttpMethod.Get, request.Method); Assert.Null(request.Content);
+            Assert.EndsWith("/operational31/" + Operation + "/status", request.RequestUri!.AbsolutePath);
+            var binding = JsonNode.Parse(Convert.FromBase64String(request.Headers.GetValues("X-HappyM-Operational-Binding31").Single()))!;
+            Assert.Equal(Consumer.ClientId, binding["consumerBinding"]!["clientId"]!.GetValue<string>());
+            Assert.Equal(Appliance.InstallationId, binding["applianceBinding"]!["installationId"]!.GetValue<string>());
+            Assert.Equal(Registration.RequestId, binding["requestId"]!.GetValue<string>());
+            Assert.Equal(Registration.InputSha256, binding["inputSha256"]!.GetValue<string>());
+            Assert.Equal(Admin, request.Headers.GetValues("X-HappyM-Native-System-Authorization31").Single()); return Response(body); });
+        using var http = Http(h); using var admin = Authority();
+        if (forgedReady) await Assert.ThrowsAsync<PostizNativeOutcomeUnknownException>(() => Client(http).ObserveOperationalRegistration31Async(Registration, Purpose, admin));
+        else Assert.Equal("Absent", (await Client(http).ObserveOperationalRegistration31Async(Registration, Purpose, admin)).State);
+        Assert.Equal(1, h.Calls);
+    }
     private sealed class CancelAtEof(byte[] bytes, CancellationTokenSource cancellation) : MemoryStream(bytes)
     {
         public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken ct = default)

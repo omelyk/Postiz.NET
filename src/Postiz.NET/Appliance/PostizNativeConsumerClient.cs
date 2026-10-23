@@ -59,7 +59,7 @@ public sealed partial class PostizNativeConsumerClient
             || !Credential(options.InternalClientSecret, 32, 4096)
             || new[] { "Authorization", "X-HappyM-Organization-Id", "X-HappyM-Client-Id",
                 "X-HappyM-Native-Fixture-Authorization", "X-HappyM-Native-System-Authorization31",
-                "X-HappyM-Native-System-Organization31" }.Any(httpClient.DefaultRequestHeaders.Contains))
+                "X-HappyM-Native-System-Organization31", "X-HappyM-Operational-Binding31" }.Any(httpClient.DefaultRequestHeaders.Contains))
             throw new ArgumentException("A qualified loopback native control transport is required.");
         http = httpClient;
         baseAddress = new Uri(options.BaseAddress.AbsoluteUri.TrimEnd('/') + "/");
@@ -127,7 +127,8 @@ public sealed partial class PostizNativeConsumerClient
 
     private async Task<T> SendAsync<T>(string path, object input, string purpose,
         Func<JsonElement, CancellationToken, Task<T>> consume, CancellationToken cancellationToken,
-        NativeAdministrativeCredential31? administrator = null, HttpMethod? method = null)
+        NativeAdministrativeCredential31? administrator = null, HttpMethod? method = null,
+        NativeOperationalRegistrationRequest31? statusBinding31 = null)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(deadline);
@@ -140,6 +141,13 @@ public sealed partial class PostizNativeConsumerClient
             if (request.Method != HttpMethod.Get)
             { request.Content = new ByteArrayContent(body); request.Content.Headers.ContentType = new("application/json"); }
             if (administrator is not null) administrator.Attach(request, controlSecret, purpose);
+            if (statusBinding31 is not null)
+            {
+                // Public metadata only, bounded exact consumer+appliance+request.
+                var binding = JsonSerializer.SerializeToUtf8Bytes(new { statusBinding31.ApplianceBinding,
+                    statusBinding31.ConsumerBinding, statusBinding31.RequestId, statusBinding31.InputSha256 }, JsonOptions);
+                request.Headers.Add("X-HappyM-Operational-Binding31", Convert.ToBase64String(binding));
+            }
             request.Headers.TryAddWithoutValidation("Authorization", "Bearer " + controlSecret);
             request.Headers.TryAddWithoutValidation("X-HappyM-Client-Id", clientId);
             request.Headers.TryAddWithoutValidation("X-HappyM-Native-Fixture-Authorization", purpose);
