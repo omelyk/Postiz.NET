@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Postiz.Transport;
+using Postiz.Appliance;
 
 namespace Postiz.PrePublishRender;
 
@@ -122,6 +123,11 @@ public interface IPostizPrePublishRenderClient
 
     Task<RenderOccurrence> GetAsync(string occurrenceId, CancellationToken cancellationToken = default);
 
+    /// <summary>Reads the occurrence-scoped simulator journal using the organization-scoped API key.
+    /// Expected post and organization IDs validate the response locally and are never sent in the URI or headers.</summary>
+    Task<SyntheticDeliveryReceipt> GetSyntheticDeliveryReceiptAsync(
+        string occurrenceId, string expectedPostId, string expectedOrganizationId, CancellationToken cancellationToken = default);
+
     Task<ClaimedRenderOccurrence> ClaimAsync(
         string occurrenceId,
         ClaimRenderRequest request,
@@ -137,7 +143,7 @@ public interface IPostizPrePublishRenderClient
     Task<RenderOccurrence> CancelAsync(string occurrenceId, CancellationToken cancellationToken = default);
 }
 
-internal sealed class PostizPrePublishRenderClient(PostizTransport transport) : IPostizPrePublishRenderClient
+internal sealed class PostizPrePublishRenderClient(PostizTransport transport, PostizOptions options) : IPostizPrePublishRenderClient
 {
     private const string BasePath = "public/v1/prepublish-render/occurrences";
 
@@ -156,6 +162,23 @@ internal sealed class PostizPrePublishRenderClient(PostizTransport transport) : 
 
     public Task<RenderOccurrence> GetAsync(string occurrenceId, CancellationToken cancellationToken = default) =>
         transport.GetAsync<RenderOccurrence>($"{BasePath}/{Escape(occurrenceId)}", cancellationToken);
+
+    public async Task<SyntheticDeliveryReceipt> GetSyntheticDeliveryReceiptAsync(
+        string occurrenceId, string expectedPostId, string expectedOrganizationId, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var organizationId = expectedOrganizationId;
+        if (string.IsNullOrWhiteSpace(options.ApiKey)
+            || !SyntheticDeliveryReceiptValidation.SyntheticIdentifier(organizationId)
+            || (options.OrganizationId is not null && !string.Equals(options.OrganizationId, expectedOrganizationId, StringComparison.Ordinal))
+            || !SyntheticDeliveryReceiptValidation.SyntheticIdentifier(expectedPostId)
+            || !SyntheticDeliveryReceiptValidation.SyntheticIdentifier(occurrenceId))
+            throw new ArgumentException("An API key and coherent expected synthetic receipt scope are required.");
+        var receipt = await transport.GetAsync<SyntheticDeliveryReceipt>(
+            $"{BasePath}/{Escape(occurrenceId)}/synthetic-receipt", cancellationToken).ConfigureAwait(false);
+        SyntheticDeliveryReceiptValidation.ValidateSyntheticReceipt(receipt, organizationId!, expectedPostId, occurrenceId);
+        return receipt;
+    }
 
     public Task<ClaimedRenderOccurrence> ClaimAsync(
         string occurrenceId,

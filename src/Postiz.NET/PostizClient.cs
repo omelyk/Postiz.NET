@@ -30,7 +30,7 @@ public sealed class PostizClient : IPostizClient
         Media = new PostizMediaClient(transport);
         Chat = new PostizChatClient(transport);
         Posts = new PostizPostsClient(transport);
-        PrePublishRender = new PostizPrePublishRenderClient(transport);
+        PrePublishRender = new PostizPrePublishRenderClient(transport, options);
         ScheduleIntents = new PostizScheduleIntentsClient(transport);
         Analytics = new PostizAnalyticsClient(transport);
         Groups = new PostizGroupsClient(transport);

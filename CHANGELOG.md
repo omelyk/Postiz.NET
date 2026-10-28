@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — occurrence-scoped synthetic receipt
+
+- Added a read-only organization-scoped receipt call to the current prepublish-render client, reusing the synthetic receipt DTO and validation.
+- Kept control-plane credentials and fixture authorization separate from operational reads.
+
+
 ## Native TEST bootstrap - additional Source delta, not released
 
 - Added a separate native TEST consumer bootstrap client with a protected RAM credential receiver and a public receipt containing no key. Ordinary clients/factories remain unchanged.
