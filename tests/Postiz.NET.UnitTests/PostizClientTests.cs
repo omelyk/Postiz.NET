@@ -69,7 +69,7 @@ public sealed class PostizClientTests
         var correlation = new RenderCorrelation("crm-1", "snapshot-1", "group-1");
         RenderTarget[] targets =
         [
-            new("integration-1", "youtube", "Ready caption", [new("media-1", "video", "video/mp4")]),
+            new("integration-1", "youtube", "Ready caption", [new("media-1", "video", "video/mp4")], RenderContentModes.Media),
         ];
         var request = AttachRenderedRequest.Create(
             "occ-1", "opaque-token", correlation, targets, DateTimeOffset.Parse("2026-08-26T08:00:00Z"));
@@ -78,7 +78,7 @@ public sealed class PostizClientTests
 
         Assert.Equal(PrePublishRenderStatuses.ReadyToPublish, result.Status);
         Assert.Equal(
-            "sha256-0f9e710275552e8f30ff3e9930d8ef78d6bbde337a6ae5b5c1c819f80468ed26",
+            "sha256-bf381ad74fc1c555acfc9658df00d8a5732c57ed4bcc202e25d6ca5330695835",
             request.ContentHash);
     }
 
@@ -111,6 +111,7 @@ public sealed class PostizClientTests
                     new("media-1", "image", "image/png"),
                     new("media-2", "image", "image/png"),
                 ],
+                ContentMode: RenderContentModes.Media,
                 PublishMode: RenderPublishModes.StorySequence),
         ];
         var attach = AttachRenderedRequest.Create(

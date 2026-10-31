@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Postiz.Transport;
 
 namespace Postiz.Appliance;
@@ -56,6 +58,39 @@ public sealed record SetFacebookOAuthAppRequest(string AppId, string? AppSecret 
 
 public sealed record SetProviderOAuthAppResult(bool Configured, string? AppIdMasked);
 
+public static class SyntheticDeliveryContract
+{
+    public const string Contract = "happym.synthetic-delivery/v1";
+    public const string Mode = "SIMULATION";
+}
+
+public static class SyntheticDeliveryStatuses
+{
+    public const string NotStarted = "NotStarted";
+    public const string Partial = "Partial";
+    public const string SimulatedPublished = "SimulatedPublished";
+}
+
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record SyntheticDeliverySlide([property: JsonRequired] int SlideIndex, string SyntheticReceiptId, string Status);
+
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record SyntheticDeliveryEvent(int Ordinal, string Kind);
+
+/// <summary>A TEST simulator journal readback. It never confirms provider publication.</summary>
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record SyntheticDeliveryReceipt(
+    string Contract,
+    string Mode,
+    string Status,
+    string OrganizationId,
+    string IntegrationId,
+    string PostId,
+    string OccurrenceId,
+    [property: JsonRequired] string? BodyHash,
+    IReadOnlyList<SyntheticDeliverySlide> Slides,
+    IReadOnlyList<SyntheticDeliveryEvent> Events);
+
 public interface IPostizApplianceClient
 {
     Task<ApplianceHealth> GetHealthAsync(CancellationToken cancellationToken = default);
@@ -67,6 +102,8 @@ public interface IPostizApplianceClient
     Task<AdminPasswordReset> ResetAdminPasswordAsync(string password, CancellationToken cancellationToken = default);
     Task<ProvidersStatus> GetProvidersStatusAsync(CancellationToken cancellationToken = default);
     Task<SetProviderOAuthAppResult> SetFacebookOAuthAppAsync(SetFacebookOAuthAppRequest request, CancellationToken cancellationToken = default);
+    Task<SyntheticDeliveryReceipt> GetSyntheticDeliveryReceiptAsync(
+        string organizationId, string postId, string occurrenceId, CancellationToken cancellationToken = default);
 }
 
 internal sealed class PostizApplianceClient(PostizTransport transport, PostizOptions options) : IPostizApplianceClient
@@ -105,6 +142,20 @@ internal sealed class PostizApplianceClient(PostizTransport transport, PostizOpt
         ArgumentException.ThrowIfNullOrWhiteSpace(request.AppId);
         return transport.PutInternalAsync<SetProviderOAuthAppResult>(
             "appliance/providers/facebook", request, cancellationToken);
+    }
+
+    public async Task<SyntheticDeliveryReceipt> GetSyntheticDeliveryReceiptAsync(
+        string organizationId, string postId, string occurrenceId, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        foreach (var id in new[] { organizationId, postId, occurrenceId })
+            if (!SyntheticDeliveryReceiptValidation.SyntheticIdentifier(id)) throw new ArgumentException("A valid synthetic receipt scope is required.");
+        var path = "internal/happym/appliance/test-fixture/receipts"
+            + $"?organizationId={Uri.EscapeDataString(organizationId)}&postId={Uri.EscapeDataString(postId)}"
+            + $"&occurrenceId={Uri.EscapeDataString(occurrenceId)}";
+        var receipt = await transport.GetInternalAsync<SyntheticDeliveryReceipt>(path, cancellationToken).ConfigureAwait(false);
+        SyntheticDeliveryReceiptValidation.ValidateSyntheticReceipt(receipt, organizationId, postId, occurrenceId);
+        return receipt;
     }
 
     private ApplianceCredentials Apply(ApplianceCredentials credentials)

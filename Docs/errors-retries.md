@@ -13,3 +13,9 @@ write outcomes through its publication registry.
 
 Every async API accepts a `CancellationToken`; the configured request timeout is
 linked to it.
+
+Both delta-seconds and HTTP-date forms of `Retry-After` are supported. Expired
+dates permit an immediate retry; server delays retain the existing 30-second
+cap and the total request cancellation deadline. This is a per-request policy,
+not a distributed appliance quota across CRM instances. Non-idempotent writes
+remain single-attempt even when a response contains `Retry-After`.

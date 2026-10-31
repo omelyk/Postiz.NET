@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Postiz.Transport;
+using Postiz.Appliance;
 
 namespace Postiz.PrePublishRender;
 
@@ -12,6 +13,7 @@ public static class PrePublishRenderStatuses
     public const string ReadyToPublish = "ReadyToPublish";
     public const string Publishing = "Publishing";
     public const string Published = "Published";
+    public const string SimulatedPublished = "SimulatedPublished";
     public const string Failed = "Failed";
     public const string RenderTimedOut = "RenderTimedOut";
     public const string Cancelled = "Cancelled";
@@ -32,8 +34,16 @@ public sealed record RenderTarget(
     string Channel,
     string Caption,
     IReadOnlyList<RenderedMedia> Media,
+    string ContentMode,
     RenderTargetExtras? Extras = null,
     string? PublishMode = null);
+
+public static class RenderContentModes
+{
+    public const string ContractVersion = "prepublish-render/v3";
+    public const string TextOnly = "text_only";
+    public const string Media = "media";
+}
 
 public static class RenderPublishModes
 {
@@ -113,6 +123,11 @@ public interface IPostizPrePublishRenderClient
 
     Task<RenderOccurrence> GetAsync(string occurrenceId, CancellationToken cancellationToken = default);
 
+    /// <summary>Reads the occurrence-scoped simulator journal using the organization-scoped API key.
+    /// Expected post and organization IDs validate the response locally and are never sent in the URI or headers.</summary>
+    Task<SyntheticDeliveryReceipt> GetSyntheticDeliveryReceiptAsync(
+        string occurrenceId, string expectedPostId, string expectedOrganizationId, CancellationToken cancellationToken = default);
+
     Task<ClaimedRenderOccurrence> ClaimAsync(
         string occurrenceId,
         ClaimRenderRequest request,
@@ -128,7 +143,7 @@ public interface IPostizPrePublishRenderClient
     Task<RenderOccurrence> CancelAsync(string occurrenceId, CancellationToken cancellationToken = default);
 }
 
-internal sealed class PostizPrePublishRenderClient(PostizTransport transport) : IPostizPrePublishRenderClient
+internal sealed class PostizPrePublishRenderClient(PostizTransport transport, PostizOptions options) : IPostizPrePublishRenderClient
 {
     private const string BasePath = "public/v1/prepublish-render/occurrences";
 
@@ -147,6 +162,23 @@ internal sealed class PostizPrePublishRenderClient(PostizTransport transport) : 
 
     public Task<RenderOccurrence> GetAsync(string occurrenceId, CancellationToken cancellationToken = default) =>
         transport.GetAsync<RenderOccurrence>($"{BasePath}/{Escape(occurrenceId)}", cancellationToken);
+
+    public async Task<SyntheticDeliveryReceipt> GetSyntheticDeliveryReceiptAsync(
+        string occurrenceId, string expectedPostId, string expectedOrganizationId, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var organizationId = expectedOrganizationId;
+        if (string.IsNullOrWhiteSpace(options.ApiKey)
+            || !SyntheticDeliveryReceiptValidation.SyntheticIdentifier(organizationId)
+            || (options.OrganizationId is not null && !string.Equals(options.OrganizationId, expectedOrganizationId, StringComparison.Ordinal))
+            || !SyntheticDeliveryReceiptValidation.SyntheticIdentifier(expectedPostId)
+            || !SyntheticDeliveryReceiptValidation.SyntheticIdentifier(occurrenceId))
+            throw new ArgumentException("An API key and coherent expected synthetic receipt scope are required.");
+        var receipt = await transport.GetAsync<SyntheticDeliveryReceipt>(
+            $"{BasePath}/{Escape(occurrenceId)}/synthetic-receipt", cancellationToken).ConfigureAwait(false);
+        SyntheticDeliveryReceiptValidation.ValidateSyntheticReceipt(receipt, organizationId!, expectedPostId, occurrenceId);
+        return receipt;
+    }
 
     public Task<ClaimedRenderOccurrence> ClaimAsync(
         string occurrenceId,
@@ -181,6 +213,16 @@ public static class PrePublishRenderHash
         IReadOnlyList<RenderTarget> targets,
         DateTimeOffset renderedAtUtc)
     {
+        if (targets is null || targets.Count != 1 || targets[0] is not { } target || target.Media is null)
+            throw new ArgumentException("Exactly one explicit rendered target is required.", nameof(targets));
+        if (target.ContentMode == RenderContentModes.TextOnly)
+        {
+            if (string.IsNullOrWhiteSpace(target.Caption) || target.Media.Count != 0 ||
+                target.Extras?.ThumbnailMediaId is not null || target.PublishMode is not null)
+                throw new ArgumentException("The text_only target must contain caption and no media or media presentation.", nameof(targets));
+        }
+        else if (target.ContentMode != RenderContentModes.Media || target.Media.Count is < 1 or > 10)
+            throw new ArgumentException("An explicit media target requires one to ten media items.", nameof(targets));
         var element = JsonSerializer.SerializeToElement(
             new { occurrenceId, correlation, targets, renderedAtUtc },
             PostizJson.Options);
@@ -200,11 +242,14 @@ public static class PrePublishRenderHash
                 {
                     if (!first) output.Append(',');
                     first = false;
-                    output.Append(JsonSerializer.Serialize(property.Name));
+                    AppendCanonicalString(property.Name, output);
                     output.Append(':');
                     AppendCanonical(property.Value, output);
                 }
                 output.Append('}');
+                break;
+            case JsonValueKind.String:
+                AppendCanonicalString(element.GetString()!, output);
                 break;
             case JsonValueKind.Array:
                 output.Append('[');
@@ -219,5 +264,33 @@ public static class PrePublishRenderHash
                 output.Append(element.GetRawText());
                 break;
         }
+    }
+
+    // JSON.stringify-compatible escaping; the wire serializer remains unchanged.
+    private static void AppendCanonicalString(string value, StringBuilder output)
+    {
+        output.Append((char)34);
+        for (var index = 0; index < value.Length; index++)
+        {
+            var ch = value[index];
+            switch (ch)
+            {
+                case (char)34: output.Append((char)92).Append((char)34); break;
+                case (char)92: output.Append((char)92).Append((char)92); break;
+                case (char)8: output.Append((char)92).Append('b'); break;
+                case (char)12: output.Append((char)92).Append('f'); break;
+                case (char)10: output.Append((char)92).Append('n'); break;
+                case (char)13: output.Append((char)92).Append('r'); break;
+                case (char)9: output.Append((char)92).Append('t'); break;
+                default:
+                    if (char.IsHighSurrogate(ch) && index + 1 < value.Length && char.IsLowSurrogate(value[index + 1]))
+                        output.Append(ch).Append(value[++index]);
+                    else if (ch < 0x20 || char.IsSurrogate(ch))
+                        output.Append((char)92).Append('u').Append(((int)ch).ToString("x4", System.Globalization.CultureInfo.InvariantCulture));
+                    else output.Append(ch);
+                    break;
+            }
+        }
+        output.Append((char)34);
     }
 }
