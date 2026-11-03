@@ -1,6 +1,6 @@
 # API coverage
 
-Supported by `Postiz.NET 1.0.0-beta.7` against HappyM.Postiz based on upstream
+Supported by `Postiz.NET 1.0.0-beta.8` against HappyM.Postiz based on upstream
 `v2.23.0` `/public/v1`:
 
 | Area | Routes |

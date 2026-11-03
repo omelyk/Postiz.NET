@@ -8,6 +8,7 @@ using Postiz.Media;
 using Postiz.Notifications;
 using Postiz.Posts;
 using Postiz.PrePublishRender;
+using Postiz.ScheduleIntents;
 using Postiz.Webhooks;
 
 namespace Postiz;
@@ -25,6 +26,8 @@ public interface IPostizClient
     IPostizPostsClient Posts { get; }
 
     IPostizPrePublishRenderClient PrePublishRender { get; }
+
+    IPostizScheduleIntentsClient ScheduleIntents { get; }
 
     IPostizAnalyticsClient Analytics { get; }
 
