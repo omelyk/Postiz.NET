@@ -1,5 +1,13 @@
 # Compatibility
 
+## Stable cohort 3.1.0 - release preparation
+
+- SDK packages: `Postiz.NET`, `Postiz.NET.DependencyInjection` and `Postiz.NET.AspNetCore`, all `3.1.0`, on `net8.0` and `net9.0`. Functional source is the qualified SDK cohort already merged by PR #2, unchanged by this version promotion.
+- Private host adapters use an exact `[3.1.0]` SDK pin. Their package versions and Vue adapter are recorded separately in the admitted release matrix; a stable SDK version does not qualify an adapter or appliance automatically.
+- The appliance keeps the existing upstream `2.23.0` baseline and the existing Public API/render contracts. Select it by the admitted immutable image digest; never infer compatibility from `latest` or an upstream tag alone.
+- Stable package CI, package publication and cloud adoption remain separate evidence. Native TEST bootstrap stays TEST-only; a PROD first bootstrap is not implemented by this version promotion.
+
+
 | Postiz.NET | Postiz | Contract |
 |---|---|---|
 | 1.0.0-alpha.1 | v2.23.0 | `/public/v1`, fixture contract tests |
